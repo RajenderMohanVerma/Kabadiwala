@@ -23,19 +23,19 @@ export default function NewPickupPage() {
 
   const identify = async (file = selectedFile) => {
     if (!file) return
-    setScan({ busy: true, message: 'Photo analyse ho rahi hai…', result: null })
+    setScan({ busy: true, message: 'Analyzing your photo…', result: null })
     try {
       const body = new FormData()
       body.append('image', file)
       const { data } = await api.post('/ai/identify-item', body, { headers: { 'Content-Type': 'multipart/form-data' } })
       const result = data.data
-      setScan({ busy: false, message: 'Suggestion ready. Details submit karne se pehle review karein.', result })
+      setScan({ busy: false, message: 'Suggestion ready. Review the details before submitting.', result })
       if (result.category) setValue('category', result.category)
       if (result.itemName) setValue('itemDetails', result.itemName)
       if (result.condition) setValue('condition', result.condition)
       if (result.estimatedWeightKg) setValue('estimatedWeight', result.estimatedWeightKg)
     } catch (e) {
-      setScan({ busy: false, message: e.response?.data?.message || 'Photo identify nahi ho paayi. Aap details manually bhar sakte hain.', result: null })
+      setScan({ busy: false, message: e.response?.data?.message || 'We could not identify the item. You can enter the details manually.', result: null })
     }
   }
 
@@ -60,30 +60,30 @@ export default function NewPickupPage() {
       await api.post('/pickups', body)
       navigate('/customer/pickups')
     } catch (e) {
-      setError(e.response?.data?.message || 'Pickup request save nahi ho paayi.')
+      setError(e.response?.data?.message || 'We could not save your pickup request.')
     }
   }
 
   return <div className="dashboard-content narrow">
-    <div className="page-title"><div><span className="eyebrow">New pickup</span><h1>Item ki photo se shuru karein.</h1><p>Photo lein, AI suggestion review karein aur pickup details complete karein.</p></div></div>
+    <div className="page-title"><div><span className="eyebrow">New pickup</span><h1>Start with a photo of your item.</h1><p>Take a photo, review the AI suggestion, and complete your pickup details.</p></div></div>
     <form className="panel form-grid" onSubmit={handleSubmit(submit)}>
       <section className="scan-card scan-card-primary">
-        <div><span className="eyebrow"><Sparkles size={15} /> Smart item scan</span><h2>Camera se item identify karein</h2><p>Button dabate hi mobile camera ya computer file picker khulega. Photo select hote hi analysis start hoga.</p></div>
+        <div><span className="eyebrow"><Sparkles size={15} /> Smart item scan</span><h2>Identify your item with a photo</h2><p>Use your mobile camera or choose an image from your computer. Analysis starts as soon as you select a photo.</p></div>
         <div className="scan-actions"><button type="button" className="button primary" onClick={takePhoto} disabled={scan.busy}><Camera size={16} /> Take photo</button><button type="button" className="button secondary" onClick={choosePhoto} disabled={scan.busy}><ImagePlus size={16} /> Upload image</button></div>
         <input className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" ref={cameraRef} onChange={handlePhoto} />
         <input className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple {...registration} ref={(node) => { registration.ref(node); inputRef.current = node }} onChange={(event) => { registration.onChange(event); handlePhoto(event) }} />
         {selectedFile && <img className="scan-preview scan-preview-large" src={URL.createObjectURL(selectedFile)} alt="Selected item preview" />}
         {scan.message && <small className={scan.result ? 'success-text' : scan.busy ? 'scan-working' : 'form-error'}>{scan.message}</small>}
-        {scan.result && <div className="scan-result"><b>{scan.result.itemName}</b><span>{scan.result.material || 'Material review karein'} · {Math.round((scan.result.confidence || 0) * 100)}% confidence</span></div>}
+        {scan.result && <div className="scan-result"><b>{scan.result.itemName}</b><span>{scan.result.material || 'Material requires review'} · {Math.round((scan.result.confidence || 0) * 100)}% confidence</span></div>}
       </section>
-      <div className="form-section-title"><h2>Item details</h2><p>AI suggestion ko apni actual information ke hisaab se edit kar sakte hain.</p></div>
+      <div className="form-section-title"><h2>Item details</h2><p>Review and edit the AI suggestion to match your item.</p></div>
       <label className="field"><span>Category</span><select {...register('category', { required: true })}><option value="">Choose category</option><option>E-waste</option><option>Metal</option><option>Paper</option><option>Plastic</option><option>Glass</option><option>Textile</option><option>Other</option></select></label>
       <Input label="Item details" placeholder="Example: old laptop with charger" {...register('itemDetails', { required: true })} />
       <Input label="Brand (optional)" placeholder="Dell, Samsung…" {...register('brand')} />
       <Input label="Condition" placeholder="Working, damaged, mixed…" {...register('condition')} />
       <Input label="Quantity" type="number" min="1" {...register('quantity', { valueAsNumber: true })} />
       <Input label="Estimated weight (kg)" type="number" min="0" step="0.1" placeholder="Optional" {...register('estimatedWeight')} />
-      <div className="form-section-title"><h2>Pickup schedule</h2><p>Collector ko convenient time batayein.</p></div>
+      <div className="form-section-title"><h2>Pickup schedule</h2><p>Choose a convenient time for the collector to visit.</p></div>
       <Input label="Pickup address" placeholder="House no., street, city" {...register('address', { required: true })} />
       <Input label="Pickup date" type="date" {...register('pickupDate', { required: true })} />
       <Input label="Preferred time" type="time" {...register('pickupTime', { required: true })} />

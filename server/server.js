@@ -207,29 +207,37 @@ const identifyItem = async (req, res) => {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000)
   try {
-    const configuredModels = (process.env.GEMINI_MODEL || 'gemini-2.0-flash,gemini-1.5-flash').split(',').map((model) => model.trim()).filter(Boolean)
+    const configuredModels = (process.env.GEMINI_MODEL || 'gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash')
+      .split(',')
+      .map((model) => model.trim().replace(/^models\//, ''))
+      .filter(Boolean)
+    const models = [...new Set([...configuredModels, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'])]
     let response
-    for (const model of configuredModels) {
+    let lastProviderMessage = ''
+    for (const model of models) {
       response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: 'Identify the recyclable item in this image. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes. Use a number in kilograms for estimatedWeightKg and a number from 0 to 1 for confidence. Keep notes concise. If uncertain, say so in notes and lower confidence.' },
-            { inlineData: { mimeType: req.file.mimetype, data: req.file.buffer.toString('base64') } }
-          ]
-        }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: 'Identify the recyclable item in this image. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes. Use a number in kilograms for estimatedWeightKg and a number from 0 to 1 for confidence. Keep notes concise. If uncertain, say so in notes and lower confidence.' },
+              { inlineData: { mimeType: req.file.mimetype, data: req.file.buffer.toString('base64') } }
+            ]
+          }],
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+        })
       })
-      })
-      if (response.ok || ![400, 404].includes(response.status)) break
+      if (response.ok) break
+      lastProviderMessage = await response.text()
+      if (![400, 404, 429].includes(response.status)) break
     }
     if (!response.ok) {
-      const providerBody = await response.text()
-      console.error(`Gemini item identification failed with status ${response.status}: ${providerBody.slice(0, 500)}`)
-      return send(res, 502, 'Gemini could not analyse this image. Check the Render Gemini API key, enabled API and model settings.')
+      console.error(`Gemini item identification failed with status ${response.status}: ${lastProviderMessage.slice(0, 500)}`)
+      if ([401, 403].includes(response.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
+      if (response.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
+      return send(res, 502, 'Gemini could not analyse this image. Check the configured model and Generative Language API access in Render.')
     }
     const payload = await response.json()
     const text = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text

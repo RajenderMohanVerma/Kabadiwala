@@ -76,8 +76,10 @@ Set `VITE_API_URL` when the API is not at the default
 For optional AI item identification, set `GEMINI_API_KEY` only in the backend
 environment (local `server/.env` or Render Environment Variables). Never put
 the real key in `.env.example`, frontend code, Vercel variables, or GitHub.
-The default model is `gemini-2.0-flash`; set `GEMINI_MODEL` only if your
-Google AI project uses another supported vision model.
+The default model list is `gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash`.
+The backend tries the configured models in order and falls back when a model
+is unavailable. Set `GEMINI_MODEL` in Render only when your Google AI project
+uses a different supported vision model.
 
 ## Demo accounts
 
