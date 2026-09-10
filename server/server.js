@@ -207,8 +207,10 @@ const identifyItem = async (req, res) => {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000)
   try {
-    const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+    const configuredModels = (process.env.GEMINI_MODEL || 'gemini-2.0-flash,gemini-1.5-flash').split(',').map((model) => model.trim()).filter(Boolean)
+    let response
+    for (const model of configuredModels) {
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
@@ -221,10 +223,13 @@ const identifyItem = async (req, res) => {
         }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
       })
-    })
+      })
+      if (response.ok || ![400, 404].includes(response.status)) break
+    }
     if (!response.ok) {
-      console.error(`Gemini item identification failed with status ${response.status}`)
-      return send(res, 502, 'The AI provider could not identify this item')
+      const providerBody = await response.text()
+      console.error(`Gemini item identification failed with status ${response.status}: ${providerBody.slice(0, 500)}`)
+      return send(res, 502, 'Gemini could not analyse this image. Check the Render Gemini API key, enabled API and model settings.')
     }
     const payload = await response.json()
     const text = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text

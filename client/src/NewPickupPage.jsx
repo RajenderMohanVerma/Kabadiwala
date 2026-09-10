@@ -1,4 +1,4 @@
-import { Camera, Sparkles } from 'lucide-react'
+import { Camera, ImagePlus, Sparkles } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -11,6 +11,7 @@ function Input({ label, ...props }) {
 export default function NewPickupPage() {
   const navigate = useNavigate()
   const inputRef = useRef(null)
+  const cameraRef = useRef(null)
   const [scan, setScan] = useState({ busy: false, message: '', result: null })
   const [error, setError] = useState('')
   const { register, handleSubmit, setValue, watch, formState: { isSubmitting } } = useForm({
@@ -38,7 +39,15 @@ export default function NewPickupPage() {
     }
   }
 
+  const handlePhoto = (event) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setValue('images', event.target.files, { shouldValidate: true })
+      identify(file)
+    }
+  }
   const choosePhoto = () => inputRef.current?.click()
+  const takePhoto = () => cameraRef.current?.click()
   const submit = async (values) => {
     try {
       const body = new FormData()
@@ -60,8 +69,9 @@ export default function NewPickupPage() {
     <form className="panel form-grid" onSubmit={handleSubmit(submit)}>
       <section className="scan-card scan-card-primary">
         <div><span className="eyebrow"><Sparkles size={15} /> Smart item scan</span><h2>Camera se item identify karein</h2><p>Button dabate hi mobile camera ya computer file picker khulega. Photo select hote hi analysis start hoga.</p></div>
-        <button type="button" className="button primary" onClick={choosePhoto} disabled={scan.busy}><Camera size={16} /> {scan.busy ? 'Analysing…' : selectedFile ? 'Retake / choose photo' : 'Choose image first'}</button>
-        <input className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" {...registration} ref={(node) => { registration.ref(node); inputRef.current = node }} onChange={(event) => { registration.onChange(event); const file = event.target.files?.[0]; if (file) identify(file) }} />
+        <div className="scan-actions"><button type="button" className="button primary" onClick={takePhoto} disabled={scan.busy}><Camera size={16} /> Take photo</button><button type="button" className="button secondary" onClick={choosePhoto} disabled={scan.busy}><ImagePlus size={16} /> Upload image</button></div>
+        <input className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" ref={cameraRef} onChange={handlePhoto} />
+        <input className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple {...registration} ref={(node) => { registration.ref(node); inputRef.current = node }} onChange={(event) => { registration.onChange(event); handlePhoto(event) }} />
         {selectedFile && <img className="scan-preview scan-preview-large" src={URL.createObjectURL(selectedFile)} alt="Selected item preview" />}
         {scan.message && <small className={scan.result ? 'success-text' : scan.busy ? 'scan-working' : 'form-error'}>{scan.message}</small>}
         {scan.result && <div className="scan-result"><b>{scan.result.itemName}</b><span>{scan.result.material || 'Material review karein'} · {Math.round((scan.result.confidence || 0) * 100)}% confidence</span></div>}
