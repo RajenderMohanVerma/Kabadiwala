@@ -476,7 +476,7 @@ Prisma migration. README documents setup, demo users and API routes.
   chain-of-custody events, certificate PDF generation/download, admin
   monitoring, user verification/status, complaint workflow, audit logs and
   database-backed analytics.
-- **WORKING:** Prisma migrations/seed, SQLite persistence, JWT/bcrypt auth,
+- **WORKING:** Prisma migrations/seed, PostgreSQL persistence, JWT/bcrypt auth,
   Helmet, CORS, auth rate limiting, request validation, upload restrictions,
   PWA manifest/service worker and offline navigation fallback.
 - **PARTIALLY WORKING:** Analytics are API-backed and charted for key views,
@@ -488,7 +488,7 @@ Prisma migration. README documents setup, demo users and API routes.
 
 ### Final validation
 
-- Full live SQLite demo passed: customer pickup -> matching -> collector
+- Full live database demo passed: customer pickup -> matching -> collector
   acceptance/arrival/collection -> hub verification -> batch -> recycler
   acceptance/processing/recycling -> certificate download.
 - Customer points and notifications were created during the flow.
@@ -528,3 +528,13 @@ recycler and admin routes, with responsive loading/error/empty states and
 certificate/bulk pickup views. Hub managers verify collection, assemble and
 handoff batches; recyclers accept/reject, process and complete them; successful
 recycling generates an authenticated PDF certificate.
+
+## PostgreSQL migration (2026-09-10)
+
+The active database provider is now PostgreSQL. `server/prisma/schema.prisma`
+uses the PostgreSQL provider, `.env.example` documents a PostgreSQL URL, and
+the migration history has been replaced with the generated PostgreSQL baseline
+`20260910210500_postgresql_init`. Render should run Prisma generation during
+build and `prisma migrate deploy` plus the idempotent seed during pre-deploy.
+The historical SQLite notes above describe the earlier implementation and are
+retained only as audit history.

@@ -12,7 +12,7 @@ a traceable, role-aware platform.
   React Hook Form + Zod validation, Axios service, and installable PWA.
 - Express API with Helmet, CORS, auth rate limiting, Zod request validation,
   JWT/bcrypt authentication, global error handling, and role authorization.
-- Prisma + SQLite `User` model, migration, and seed data for all five roles:
+- Prisma + PostgreSQL `User` model, migration, and seed data for all five roles:
   `ADMIN`, `CUSTOMER`, `COLLECTOR`, `HUB_MANAGER`, and `RECYCLER`.
 
 Phase 3 adds persistent collection hubs, material batches, recycler processing,
@@ -27,7 +27,7 @@ complaints, audit logs, bulk pickups and campus drives.
 cd server
 npm install
 copy .env.example .env       # Windows
-npx prisma migrate dev --name init
+npx prisma migrate deploy
 npm run prisma:seed
 npm start
 ```
@@ -38,6 +38,26 @@ The API runs at `http://localhost:5000`. Health is available at
 ```json
 {"success":true,"message":"Kabadivala API is running"}
 ```
+
+The backend uses PostgreSQL through Prisma. Set `DATABASE_URL` to your local
+PostgreSQL or hosted Supabase/Neon connection string before running migrations.
+For Render, keep the same PostgreSQL URL in the service environment variables;
+never commit it to GitHub.
+
+For a hosted deployment, configure Render with:
+
+```text
+Root Directory: server
+Build Command: npm install && npx prisma generate
+Pre-Deploy Command: npx prisma migrate deploy && npm run prisma:seed
+Start Command: npm start
+```
+
+The repository contains a PostgreSQL baseline migration under
+`server/prisma/migrations/20260910210500_postgresql_init`. Existing SQLite
+migration history is no longer used. Changing `DATABASE_URL` alone is not
+enough; the Prisma provider and migration history must remain PostgreSQL as
+configured in this repository.
 
 ### Frontend
 
@@ -95,7 +115,7 @@ The server never returns `passwordHash`. Keep `.env` local and use a strong
 
 ## Phase 2 pickup workflow
 
-The SQLite database now contains `Pickup`, `PickupStatusEvent`, `CollectorMatch`, `Review`, `PointTransaction`, `Notification`, and `Complaint` models in addition to the Phase 1 `User` model. Collection records actual weight and optional proof images. Run `npx prisma migrate deploy` and `npm run prisma:seed` after pulling.
+The PostgreSQL database contains `Pickup`, `PickupStatusEvent`, `CollectorMatch`, `Review`, `PointTransaction`, `Notification`, and `Complaint` models in addition to the Phase 1 `User` model. Collection records actual weight and optional proof images. Run `npx prisma migrate deploy` and `npm run prisma:seed` after pulling.
 
 Customer pages are available at `/customer/dashboard`, `/customer/pickups`, `/customer/pickups/new`, `/customer/pickups/:id`, `/customer/profile`, `/customer/points`, `/customer/reviews`, `/customer/complaints`, and `/customer/notifications`. Collectors use the equivalent `/collector/*` pages for requests, status updates, availability, history and ratings.
 
@@ -127,12 +147,12 @@ Admins have dashboards for users, collectors, hubs, recyclers, pickups, batches,
 complaints, reviews, notifications, analytics, and audit logs. Admin controls
 can verify/unverify users, change account status, and move complaints through
 `OPEN`, `IN_REVIEW`, `RESOLVED`, and `CLOSED`. Bulk pickup and campus drive data
-is stored in SQLite (`BulkPickup`, `CampusDrive`, and `CampusDepartment`).
+is stored in PostgreSQL (`BulkPickup`, `CampusDrive`, and `CampusDepartment`).
 
 ## Final audit and demo readiness
 
 The Phase 4 stabilization pass verified the authenticated customer-to-certificate
-workflow against SQLite, including collector matching, collection proof,
+workflow against the relational database workflow, including collector matching, collection proof,
 hub verification, batch handoff, recycler processing, certificate download,
 points, notifications, and role restrictions. The production client build
 generates an installable PWA with a manifest, service worker, offline
