@@ -70,8 +70,8 @@ export default function NewPickupPage() {
       <section className="scan-card scan-card-primary">
         <div><span className="eyebrow"><Sparkles size={15} /> Smart item scan</span><h2>Identify your item with a photo</h2><p>Use your mobile camera or choose an image from your computer. Analysis starts as soon as you select a photo.</p></div>
         <div className="scan-actions"><button type="button" className="button primary" onClick={takePhoto} disabled={scan.busy}><Camera size={16} /> Take photo</button><button type="button" className="button secondary" onClick={choosePhoto} disabled={scan.busy}><ImagePlus size={16} /> Upload image</button></div>
-        <input className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" ref={cameraRef} onChange={handlePhoto} />
-        <input className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" multiple {...registration} ref={(node) => { registration.ref(node); inputRef.current = node }} onChange={(event) => { registration.onChange(event); handlePhoto(event) }} />
+        <input className="visually-hidden" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" capture="environment" ref={cameraRef} onChange={handlePhoto} />
+        <input className="visually-hidden" type="file" accept="image/jpeg,image/jpg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple {...registration} ref={(node) => { registration.ref(node); inputRef.current = node }} onChange={(event) => { registration.onChange(event); handlePhoto(event) }} />
         {selectedFile && <img className="scan-preview scan-preview-large" src={URL.createObjectURL(selectedFile)} alt="Selected item preview" />}
         {scan.message && <small className={scan.result ? 'success-text' : scan.busy ? 'scan-working' : 'form-error'}>{scan.message}</small>}
         {scan.result && <div className="scan-result"><b>{scan.result.itemName}</b><span>{scan.result.material || 'Material requires review'} · {Math.round((scan.result.confidence || 0) * 100)}% confidence</span></div>}

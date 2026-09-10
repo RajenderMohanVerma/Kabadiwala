@@ -177,19 +177,30 @@ app.get('/api/pickups/:id', auth, asyncRoute(async (req, res) => {
   send(res, 200, 'Pickup loaded', { pickup: normalizePickup(pickup) })
 }))
 
+const imageMimeTypes = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
+const imageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp'])
+const isSupportedImage = (file) => {
+  const extension = path.extname(file.originalname || '').toLowerCase()
+  return imageMimeTypes.has((file.mimetype || '').toLowerCase()) || imageExtensions.has(extension)
+}
+const normalizedImageMimeType = (file) => {
+  const extension = path.extname(file.originalname || '').toLowerCase()
+  if (extension === '.jpg' || extension === '.jpeg' || ['image/jpeg', 'image/jpg'].includes((file.mimetype || '').toLowerCase())) return 'image/jpeg'
+  if (extension === '.png') return 'image/png'
+  return 'image/webp'
+}
+const imageFilter = (_req, file, cb) => isSupportedImage(file)
+  ? cb(null, true)
+  : cb(new Error('Only JPG, JPEG, PNG or WEBP images up to 5MB are allowed'))
 const upload = multer({
   storage: multer.diskStorage({ destination: uploadDir, filename: (_req, file, cb) => cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`) }),
   limits: { files: 5, fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)
-    ? cb(null, true)
-    : cb(new Error('Only PNG, JPG or WEBP images are allowed'))
+  fileFilter: imageFilter
 })
 const aiUpload = multer({
   storage: multer.memoryStorage(),
   limits: { files: 1, fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)
-    ? cb(null, true)
-    : cb(new Error('Only PNG, JPG or WEBP images are allowed'))
+  fileFilter: imageFilter
 })
 const itemIdentificationSchema = z.object({
   itemName: z.string().trim().min(1).max(120),
@@ -214,21 +225,27 @@ const identifyItem = async (req, res) => {
     const models = [...new Set([...configuredModels, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'])]
     let response
     let lastProviderMessage = ''
+    const imageData = req.file.buffer.toString('base64')
+    const mimeType = normalizedImageMimeType(req.file)
     for (const model of models) {
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: 'Identify the recyclable item in this image. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes. Use a number in kilograms for estimatedWeightKg and a number from 0 to 1 for confidence. Keep notes concise. If uncertain, say so in notes and lower confidence.' },
-              { inlineData: { mimeType: req.file.mimetype, data: req.file.buffer.toString('base64') } }
-            ]
-          }],
-          generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
-        })
+      const requestBody = (jsonMode) => ({
+        contents: [{
+          parts: [
+            { text: 'Identify the recyclable item in this image. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes. Use a number in kilograms for estimatedWeightKg and a number from 0 to 1 for confidence. Keep notes concise. If uncertain, say so in notes and lower confidence.' },
+            { inlineData: { mimeType, data: imageData } }
+          ]
+        }],
+        generationConfig: { ...(jsonMode ? { responseMimeType: 'application/json' } : {}), temperature: 0.2 }
       })
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+        method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody(true))
+      })
+      if (response.status === 400) {
+        lastProviderMessage = await response.text()
+        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+          method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody(false))
+        })
+      }
       if (response.ok) break
       lastProviderMessage = await response.text()
       if (![400, 404, 429].includes(response.status)) break
@@ -244,7 +261,7 @@ const identifyItem = async (req, res) => {
     if (!text) return send(res, 502, 'The AI provider returned an invalid response')
     let parsed
     try {
-      parsed = JSON.parse(text)
+      parsed = JSON.parse(text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim())
     } catch {
       return send(res, 502, 'The AI provider returned invalid item data')
     }
@@ -631,7 +648,8 @@ app.patch('/api/campus-drives/:id/departments/:departmentId', auth, allow('ADMIN
 
 app.use((error, _req, res, _next) => {
   if (error instanceof z.ZodError) return send(res, 400, 'Please check the submitted fields', { issues: error.issues })
-  if (error instanceof multer.MulterError || error.message?.includes('image')) return send(res, 400, 'Only PNG, JPG or WEBP images up to 5MB are allowed')
+  if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') return send(res, 400, 'Images must be JPG, JPEG, PNG or WEBP files up to 5MB')
+  if (error instanceof multer.MulterError || error.message?.includes('image')) return send(res, 400, 'Only JPG, JPEG, PNG or WEBP images up to 5MB are allowed')
   console.error(error)
   return send(res, 500, 'Something went wrong on the server')
 })
