@@ -14,7 +14,7 @@ const accounts = [
 for (const [name, email, role] of accounts) {
   await prisma.user.upsert({
     where: { email },
-    update: { name, role, status: 'ACTIVE', verified: true, ...(role === 'COLLECTOR' ? { available: true, serviceArea: 'Delhi', supportedCategories: 'metal,paper,plastic,e-waste', capacityKg: 500 } : {}), ...(role === 'HUB_MANAGER' ? { address: 'Okhla Collection Hub, Delhi', serviceArea: 'South Delhi' } : {}), ...(role === 'RECYCLER' ? { address: 'GreenLoop Recycling Facility, Delhi', supportedCategories: 'metal,plastic,e-waste' } : {}) },
+    update: { name, role, status: 'ACTIVE', verified: true, passwordHash: await bcrypt.hash('Demo@12345', 12), ...(role === 'COLLECTOR' ? { available: true, serviceArea: 'Delhi', supportedCategories: 'metal,paper,plastic,e-waste', capacityKg: 500 } : {}), ...(role === 'HUB_MANAGER' ? { address: 'Okhla Collection Hub, Delhi', serviceArea: 'South Delhi' } : {}), ...(role === 'RECYCLER' ? { address: 'GreenLoop Recycling Facility, Delhi', supportedCategories: 'metal,plastic,e-waste' } : {}) },
     create: { name, email, role, verified: true, ...(role === 'COLLECTOR' ? { available: true, serviceArea: 'Delhi', supportedCategories: 'metal,paper,plastic,e-waste', capacityKg: 500 } : {}), ...(role === 'HUB_MANAGER' ? { address: 'Okhla Collection Hub, Delhi', serviceArea: 'South Delhi' } : {}), ...(role === 'RECYCLER' ? { address: 'GreenLoop Recycling Facility, Delhi', supportedCategories: 'metal,plastic,e-waste' } : {}), passwordHash: await bcrypt.hash('Demo@12345', 12) }
   })
 }
