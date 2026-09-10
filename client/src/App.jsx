@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { DashboardLayout, PublicLayout, AuthLayout } from './layouts'
 import {
   LoginPage, RegisterPage, LandingPage, DashboardPage, NotFoundPage, ForbiddenPage,
-  CustomerPickupsPage, NewPickupPage, PickupDetailPage, ProfilePage, PointsPage,
+  CustomerPickupsPage, NewPickupPage, PickupDetailPage, ProfilePage, PointsPage, PublicInfoPage,
   ReviewsPage, ComplaintsPage, NotificationsPage, CollectorRequestsPage,
   CollectorDetailPage, CollectorHistoryPage, CollectorAvailabilityPage, CollectorRatingsPage
 } from './pages'
@@ -19,7 +19,7 @@ function Protected({ children, roles }) {
 
 function AppRoutes() {
   return <Routes>
-    <Route element={<PublicLayout />}><Route path="/" element={<LandingPage />} /></Route>
+    <Route element={<PublicLayout />}><Route path="/" element={<LandingPage />} /><Route path="/how-it-works" element={<PublicInfoPage kind="how" />} /><Route path="/impact" element={<PublicInfoPage kind="impact" />} /></Route>
     <Route element={<AuthLayout />}><Route path="/login" element={<LoginPage />} /><Route path="/register" element={<RegisterPage />} /></Route>
     <Route element={<Protected><DashboardLayout /></Protected>}>
       <Route path="/dashboard" element={<DashboardPage />} />

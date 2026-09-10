@@ -184,6 +184,68 @@ const upload = multer({
     ? cb(null, true)
     : cb(new Error('Only PNG, JPG or WEBP images are allowed'))
 })
+const aiUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { files: 1, fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)
+    ? cb(null, true)
+    : cb(new Error('Only PNG, JPG or WEBP images are allowed'))
+})
+const itemIdentificationSchema = z.object({
+  itemName: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(60),
+  material: z.string().trim().min(1).max(120),
+  condition: z.string().trim().min(1).max(80),
+  estimatedWeightKg: z.number().finite().nonnegative().max(100000),
+  confidence: z.number().finite().min(0).max(1),
+  notes: z.string().trim().max(1000)
+})
+const identifyItem = async (req, res) => {
+  if (!process.env.GEMINI_API_KEY) return send(res, 503, 'AI item identification is not configured')
+  if (!req.file) return send(res, 400, 'An image is required')
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000)
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: 'Identify the recyclable item in this image. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes. Use a number in kilograms for estimatedWeightKg and a number from 0 to 1 for confidence. Keep notes concise. If uncertain, say so in notes and lower confidence.' },
+            { inlineData: { mimeType: req.file.mimetype, data: req.file.buffer.toString('base64') } }
+          ]
+        }],
+        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 }
+      })
+    })
+    if (!response.ok) {
+      console.error(`Gemini item identification failed with status ${response.status}`)
+      return send(res, 502, 'The AI provider could not identify this item')
+    }
+    const payload = await response.json()
+    const text = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text
+    if (!text) return send(res, 502, 'The AI provider returned an invalid response')
+    let parsed
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      return send(res, 502, 'The AI provider returned invalid item data')
+    }
+    const result = itemIdentificationSchema.safeParse(parsed)
+    if (!result.success) return send(res, 502, 'The AI provider returned incomplete item data')
+    return send(res, 200, 'Item identified', result.data)
+  } catch (error) {
+    if (error.name === 'AbortError') return send(res, 504, 'The AI provider timed out')
+    console.error('Gemini item identification request failed', error)
+    return send(res, 502, 'Unable to contact the AI provider')
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+app.post('/api/ai/identify-item', auth, aiUpload.single('image'), asyncRoute(identifyItem))
 app.post('/api/pickups', auth, allow('CUSTOMER'), upload.array('images', 5), asyncRoute(async (req, res) => {
   const input = pickupSchema.parse(req.body)
   const pickup = await prisma.pickup.create({ data: { ...input, pickupCode: await codeFor(), pickupDate: new Date(input.pickupDate), imagesJson: JSON.stringify((req.files || []).map((file) => `/uploads/${file.filename}`)), customerId: req.user.id }, include: ownerInclude })

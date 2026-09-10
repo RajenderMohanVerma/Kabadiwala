@@ -73,6 +73,10 @@ npm run dev
 Set `VITE_API_URL` when the API is not at the default
 `http://localhost:5000/api`.
 
+For optional AI item identification, set `GEMINI_API_KEY` only in the backend
+environment (local `server/.env` or Render Environment Variables). Never put
+the real key in `.env.example`, frontend code, Vercel variables, or GitHub.
+
 ## Demo accounts
 
 Every seeded account uses `Demo@12345` as the clearly fake local password:
@@ -115,6 +119,10 @@ npm run build
 
 The server never returns `passwordHash`. Keep `.env` local and use a strong
 `JWT_SECRET` outside development.
+
+Set `GEMINI_API_KEY` in `server/.env` to enable the authenticated
+`POST /api/ai/identify-item` endpoint. Send one PNG, JPG, or WEBP image in the
+`image` multipart field (maximum 5MB); the key is used only server-side.
 
 ## Phase 2 pickup workflow
 

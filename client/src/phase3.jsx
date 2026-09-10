@@ -7,6 +7,8 @@ import { LoadingState, ErrorState, EmptyState } from './components/Feedback'
 
 const labels = (value) => String(value || '').toLowerCase().replaceAll('_', ' ')
 const valueAt = (object, path) => path.split('.').reduce((value, key) => value?.[key], object)
+const assetUrl = (value) => value?.startsWith('http') ? value : `${(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://kabadivala-api.onrender.com/api' : 'http://localhost:5000/api')).replace(/\/api$/, '')}${value}`
+function ImageThumbs({ images = [] }) { if (!images.length) return <span className="muted">No image</span>; return <div className="image-thumbs">{images.map((image) => <a href={assetUrl(image)} target="_blank" rel="noreferrer" key={image}><img src={assetUrl(image)} alt="Customer uploaded item" loading="lazy" /></a>)}</div> }
 const apiError = (error, fallback = 'Unable to complete this action') => error.response?.data?.message || fallback
 
 function useData(path) {
@@ -56,7 +58,7 @@ function Table({ rows, columns, empty = 'New records will appear as the chain pr
   if (!rows?.length) return <EmptyState message={empty} />
   return <div className="panel table-wrap"><table><thead><tr>{columns.map(([key, title]) => <th key={key}>{title}</th>)}</tr></thead><tbody>
     {rows.map((row, index) => <tr key={row.id || row.batchCode || row.pickupCode || `${row.createdAt || 'row'}-${index}`}>
-      {columns.map(([key, _title, render]) => <td key={`${row.id || index}-${key}`}>{render ? render(row) : key === 'status' ? <Status value={valueAt(row, key)} /> : String(valueAt(row, key) ?? '—')}</td>)}
+      {columns.map(([key, _title, render]) => <td key={`${row.id || index}-${key}`}>{render ? render(row) : key === 'status' ? <Status value={valueAt(row, key)} /> : key === 'images' ? <ImageThumbs images={valueAt(row, key) || []} /> : String(valueAt(row, key) ?? '—')}</td>)}
     </tr>)}
   </tbody></table></div>
 }
@@ -93,7 +95,7 @@ function HubCollections() {
   const pickups = state.data?.pickups || []
   return <Page title="Hub collections" copy="Verify collected weights before they enter a traceable batch."><State state={state} /><ActionMessage action={action} />
     <Table rows={pickups} columns={[
-      ['pickupCode', 'Pickup'], ['category', 'Category'], ['actualWeight', 'Weight (kg)'], ['status', 'Status'],
+      ['pickupCode', 'Pickup'], ['category', 'Category'], ['images', 'Item photos'], ['actualWeight', 'Weight (kg)'], ['status', 'Status'],
       ['actions', 'Actions', (pickup) => editing === pickup.id ? <form className="inline-form" onSubmit={(event) => verify(event, pickup)}><input required name="actualWeight" type="number" min="0.01" step="0.01" defaultValue={pickup.actualWeight || ''} aria-label="Verified weight" /><input name="note" placeholder="Note" aria-label="Verification note" /><button className="button primary small" disabled={action.busy}>Verify</button><button type="button" className="button secondary small" onClick={() => setEditing(null)}>Cancel</button></form> : <button className="button secondary small" onClick={() => setEditing(pickup.id)}>Verify weight</button>]
     ]} />
   </Page>
@@ -242,7 +244,7 @@ function AdminPage({ kind }) {
   if (kind === 'dashboard') return <Page title="Admin overview" copy="Monitor users, collections, batches and open complaints."><State state={state} />{data?.stats && <div className="stat-grid"><div className="stat-card"><span>Users</span><strong>{data.stats.users}</strong></div><div className="stat-card"><span>Pickups</span><strong>{data.stats.pickups}</strong></div><div className="stat-card"><span>Open complaints</span><strong>{data.stats.openComplaints}</strong></div></div>}</Page>
   const rows = data?.pickups || data?.batches || data?.reviews || data?.notifications || data?.logs || []
   const statusData = Object.entries(data?.pickupStatus || {}).map(([status, count]) => ({ status: labels(status), count }))
-  const columns = kind === 'pickups' ? [['pickupCode', 'Pickup'], ['customer.name', 'Customer'], ['collector.name', 'Collector'], ['status', 'Status'], ['actualWeight', 'Weight (kg)']] : kind === 'batches' ? [['batchCode', 'Batch'], ['hub.name', 'Hub'], ['recycler.name', 'Recycler'], ['status', 'Status'], ['totalWeight', 'Weight (kg)']] : kind === 'reviews' ? [['pickup.pickupCode', 'Pickup'], ['reviewer.name', 'Reviewer'], ['subject.name', 'Subject'], ['rating', 'Rating'], ['comment', 'Comment']] : kind === 'notifications' ? [['user.name', 'User'], ['title', 'Title'], ['message', 'Message'], ['createdAt', 'Created']] : [['action', 'Action'], ['entityType', 'Entity'], ['actor.name', 'Actor'], ['createdAt', 'Created']]
+  const columns = kind === 'pickups' ? [['pickupCode', 'Pickup'], ['customer.name', 'Customer'], ['collector.name', 'Collector'], ['images', 'Item photos'], ['status', 'Status'], ['actualWeight', 'Weight (kg)']] : kind === 'batches' ? [['batchCode', 'Batch'], ['hub.name', 'Hub'], ['recycler.name', 'Recycler'], ['status', 'Status'], ['totalWeight', 'Weight (kg)']] : kind === 'reviews' ? [['pickup.pickupCode', 'Pickup'], ['reviewer.name', 'Reviewer'], ['subject.name', 'Subject'], ['rating', 'Rating'], ['comment', 'Comment']] : kind === 'notifications' ? [['user.name', 'User'], ['title', 'Title'], ['message', 'Message'], ['createdAt', 'Created']] : [['action', 'Action'], ['entityType', 'Entity'], ['actor.name', 'Actor'], ['createdAt', 'Created']]
   return <Page title={`Admin ${labels(kind)}`} copy="Monitor verification, workflows, complaints and audit history."><State state={state} />{kind === 'analytics' && <div className="panel"><h2>Pickup status</h2><div className="chart-box"><ResponsiveContainer width="100%" height={280}><BarChart data={statusData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="status" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="count" fill="#16805c" radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer></div></div>}{!['analytics'].includes(kind) && <Table rows={rows} columns={columns} />}</Page>
 }
 
