@@ -1,0 +1,373 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  COLLECTOR
+  HUB_MANAGER
+  RECYCLER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum PickupStatus {
+  REQUESTED
+  MATCHING
+  ASSIGNED
+  ACCEPTED
+  COLLECTOR_ON_THE_WAY
+  ARRIVED
+  COLLECTED
+  REJECTED
+  CANCELLED
+}
+
+enum MatchStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum BatchStatus {
+  CREATED
+  READY_FOR_RECYCLER
+  SENT_TO_RECYCLER
+  RECEIVED
+  PROCESSING
+  RECYCLED
+  COMPLETED
+}
+
+model User {
+  id                  String                @id @default(cuid())
+  name                String
+  email               String                @unique
+  phone               String?
+  passwordHash        String
+  role                Role                  @default(CUSTOMER)
+  status              UserStatus            @default(ACTIVE)
+  verified            Boolean               @default(false)
+  address             String?
+  latitude            Float?
+  longitude           Float?
+  serviceArea         String?
+  supportedCategories String?
+  capacityKg          Float?
+  available           Boolean               @default(true)
+  rating              Float                 @default(5)
+  totalRatings        Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  customerPickups     Pickup[]              @relation("CustomerPickups")
+  collectorPickups    Pickup[]              @relation("CollectorPickups")
+  statusEvents        PickupStatusEvent[]   @relation("EventActor")
+  matches             CollectorMatch[]
+  reviewsGiven        Review[]              @relation("ReviewsGiven")
+  reviewsReceived     Review[]              @relation("ReviewsReceived")
+  pointTransactions   PointTransaction[]
+  notifications       Notification[]
+  complaints          Complaint[]           @relation("ComplaintCustomer")
+  collectorComplaints Complaint[]           @relation("ComplaintCollector")
+  hubBatches          Batch[]               @relation("HubBatches")
+  recyclerBatches     Batch[]               @relation("RecyclerBatches")
+  chainEvents         ChainOfCustodyEvent[] @relation("ChainActor")
+  auditLogs           AuditLog[]            @relation("AuditActor")
+  bulkPickups         BulkPickup[]          @relation("BulkCustomer")
+  assignedBulkPickups BulkPickup[]          @relation("BulkCollector")
+  createdDrives       CampusDrive[]         @relation("DriveCreator")
+
+  @@index([role, available])
+}
+
+model Pickup {
+  id                  String                @id @default(cuid())
+  pickupCode          String                @unique
+  customerId          String
+  collectorId         String?
+  category            String
+  itemDetails         String
+  brand               String?
+  condition           String?
+  quantity            Int
+  estimatedWeight     Float?
+  actualWeight        Float?
+  imagesJson          String                @default("[]")
+  collectionProofJson String                @default("[]")
+  address             String
+  latitude            Float?
+  longitude           Float?
+  pickupDate          DateTime
+  timeSlot            String
+  notes               String?
+  status              PickupStatus          @default(REQUESTED)
+  qrTokenHash         String?               @unique
+  qrIssuedAt          DateTime?
+  pointsAwarded       Int                   @default(0)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  customer            User                  @relation("CustomerPickups", fields: [customerId], references: [id])
+  collector           User?                 @relation("CollectorPickups", fields: [collectorId], references: [id])
+  events              PickupStatusEvent[]
+  matches             CollectorMatch[]
+  review              Review?
+  complaints          Complaint[]
+  pointTransaction    PointTransaction?
+  notifications       Notification[]
+  batchPickups        BatchPickup[]
+  chainEvents         ChainOfCustodyEvent[]
+
+  @@index([customerId, status])
+  @@index([collectorId, status])
+  @@index([pickupDate])
+}
+
+model PickupStatusEvent {
+  id        String       @id @default(cuid())
+  pickupId  String
+  actorId   String?
+  status    PickupStatus
+  note      String?
+  location  String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime     @default(now())
+  pickup    Pickup       @relation(fields: [pickupId], references: [id], onDelete: Cascade)
+  actor     User?        @relation("EventActor", fields: [actorId], references: [id])
+
+  @@index([pickupId, createdAt])
+}
+
+model CollectorMatch {
+  id          String      @id @default(cuid())
+  pickupId    String
+  collectorId String
+  score       Float
+  reasons     String      @default("[]")
+  status      MatchStatus @default(PROPOSED)
+  createdAt   DateTime    @default(now())
+  pickup      Pickup      @relation(fields: [pickupId], references: [id], onDelete: Cascade)
+  collector   User        @relation(fields: [collectorId], references: [id])
+
+  @@unique([pickupId, collectorId])
+  @@index([collectorId, status])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  pickupId   String   @unique
+  reviewerId String
+  subjectId  String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  pickup     Pickup   @relation(fields: [pickupId], references: [id], onDelete: Cascade)
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  subject    User     @relation("ReviewsReceived", fields: [subjectId], references: [id])
+}
+
+model PointTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  pickupId  String   @unique
+  points    Int
+  reason    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  pickup    Pickup   @relation(fields: [pickupId], references: [id])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  pickupId  String?
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+  pickup    Pickup?   @relation(fields: [pickupId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+model Complaint {
+  id          String   @id @default(cuid())
+  pickupId    String
+  customerId  String
+  collectorId String?
+  subject     String
+  description String
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+  pickup      Pickup   @relation(fields: [pickupId], references: [id], onDelete: Cascade)
+  customer    User     @relation("ComplaintCustomer", fields: [customerId], references: [id])
+  collector   User?    @relation("ComplaintCollector", fields: [collectorId], references: [id])
+  updatedAt   DateTime @updatedAt
+}
+
+model Batch {
+  id             String                @id @default(cuid())
+  batchCode      String                @unique
+  qrTokenHash    String?               @unique
+  qrIssuedAt     DateTime?
+  hubId          String
+  recyclerId     String?
+  status         BatchStatus           @default(CREATED)
+  totalWeight    Float                 @default(0)
+  categoriesJson String                @default("[]")
+  notes          String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  receivedAt     DateTime?
+  sentAt         DateTime?
+  completedAt    DateTime?
+  hub            User                  @relation("HubBatches", fields: [hubId], references: [id])
+  recycler       User?                 @relation("RecyclerBatches", fields: [recyclerId], references: [id])
+  pickups        BatchPickup[]
+  events         ChainOfCustodyEvent[]
+  stages         ProcessingStage[]
+  certificate    RecyclingCertificate?
+
+  @@index([hubId, status])
+  @@index([recyclerId, status])
+}
+
+model BatchPickup {
+  id       String   @id @default(cuid())
+  batchId  String
+  pickupId String
+  weight   Float
+  addedAt  DateTime @default(now())
+  batch    Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  pickup   Pickup   @relation(fields: [pickupId], references: [id])
+
+  @@unique([batchId, pickupId])
+  @@index([pickupId])
+}
+
+model ChainOfCustodyEvent {
+  id           String   @id @default(cuid())
+  entityType   String
+  entityId     String
+  pickupId     String?
+  batchId      String?
+  actorId      String?
+  fromRole     String?
+  toRole       String?
+  status       String
+  note         String?
+  metadataJson String   @default("{}")
+  createdAt    DateTime @default(now())
+  pickup       Pickup?  @relation(fields: [pickupId], references: [id], onDelete: Cascade)
+  batch        Batch?   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  actor        User?    @relation("ChainActor", fields: [actorId], references: [id])
+
+  @@index([entityType, entityId, createdAt])
+  @@index([pickupId, createdAt])
+  @@index([batchId, createdAt])
+}
+
+model ProcessingStage {
+  id                    String    @id @default(cuid())
+  batchId               String
+  stage                 String
+  status                String    @default("PENDING")
+  recoveredMaterialJson String    @default("{}")
+  notes                 String?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime  @default(now())
+  batch                 Batch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, stage])
+}
+
+model RecyclingCertificate {
+  id             String   @id @default(cuid())
+  certificateNo  String   @unique
+  batchId        String   @unique
+  customerName   String
+  recyclerName   String
+  totalWeight    Float
+  categoriesJson String   @default("[]")
+  recycledAt     DateTime
+  filePath       String?
+  createdAt      DateTime @default(now())
+  batch          Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  action       String
+  entityType   String
+  entityId     String?
+  metadataJson String   @default("{}")
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+  actor        User?    @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+}
+
+model BulkPickup {
+  id              String   @id @default(cuid())
+  requestCode     String   @unique
+  customerId      String
+  collectorId     String?
+  organization    String
+  contactName     String
+  contactPhone    String
+  address         String
+  category        String
+  estimatedWeight Float?
+  scheduledDate   DateTime
+  status          String   @default("REQUESTED")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  customer        User     @relation("BulkCustomer", fields: [customerId], references: [id])
+  collector       User?    @relation("BulkCollector", fields: [collectorId], references: [id])
+
+  @@index([customerId, status])
+}
+
+model CampusDrive {
+  id           String             @id @default(cuid())
+  name         String
+  campus       String
+  startDate    DateTime
+  endDate      DateTime
+  targetWeight Float?
+  status       String             @default("PLANNED")
+  createdById  String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  createdBy    User               @relation("DriveCreator", fields: [createdById], references: [id])
+  departments  CampusDepartment[]
+}
+
+model CampusDepartment {
+  id           String      @id @default(cuid())
+  driveId      String
+  name         String
+  weight       Float       @default(0)
+  participants Int         @default(0)
+  createdAt    DateTime    @default(now())
+  drive        CampusDrive @relation(fields: [driveId], references: [id], onDelete: Cascade)
+
+  @@unique([driveId, name])
+}

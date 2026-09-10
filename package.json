@@ -1,0 +1,8 @@
+{
+  "name": "kabadiwala-connect-sih",
+  "private": true,
+  "scripts": {
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev"
+  }
+}
