@@ -26,7 +26,7 @@ export default function NewPickupPage() {
     try {
       const body = new FormData()
       body.append('image', file)
-      const { data } = await api.post('/ai/identify-item', body)
+      const { data } = await api.post('/ai/identify-item', body, { headers: { 'Content-Type': 'multipart/form-data' } })
       const result = data.data
       setScan({ busy: false, message: 'Suggestion ready. Details submit karne se pehle review karein.', result })
       if (result.category) setValue('category', result.category)
