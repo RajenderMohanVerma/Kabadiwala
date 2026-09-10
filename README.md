@@ -48,10 +48,13 @@ For a hosted deployment, configure Render with:
 
 ```text
 Root Directory: server
-Build Command: npm install && npx prisma generate
-Pre-Deploy Command: npx prisma migrate deploy && npm run prisma:seed
+Build Command: npm install && npx prisma generate && npx prisma migrate deploy && npm run prisma:seed
 Start Command: npm start
 ```
+
+The migration and seed commands are included in the build command so this
+configuration also works on Render's free plan, where a separate pre-deploy
+command may be unavailable.
 
 The repository contains a PostgreSQL baseline migration under
 `server/prisma/migrations/20260910210500_postgresql_init`. Existing SQLite
