@@ -1,50 +1,303 @@
 # Kabadivala
 
-**From local collection to responsible recycling.** Kabadivala is a Phase 2
-foundation connecting customers, informal collectors, hubs and recyclers with
-a traceable, role-aware platform.
+> A traceable recycling platform connecting customers, collectors, collection
+> hubs, recyclers, and administrators.
 
-## Phase 1 and Phase 2 delivered
+Kabadivala turns a pickup request into a visible recycling journey: customers
+can schedule collections and earn eco points, collectors can manage assigned
+requests, hubs can verify weights and create batches, recyclers can record
+processing, and administrators can monitor the complete chain.
 
-- React/Vite frontend with React Router and responsive public, authentication,
-  and dashboard layouts.
-- Reusable design primitives, Framer Motion transitions, Lucide icons,
-  React Hook Form + Zod validation, Axios service, and installable PWA.
-- Express API with Helmet, CORS, auth rate limiting, Zod request validation,
-  JWT/bcrypt authentication, global error handling, and role authorization.
-- Prisma + PostgreSQL `User` model, migration, and seed data for all five roles:
-  `ADMIN`, `CUSTOMER`, `COLLECTOR`, `HUB_MANAGER`, and `RECYCLER`.
+## Product highlights
 
-Phase 3 adds persistent collection hubs, material batches, recycler processing,
-chain-of-custody timelines, digital PDF certificates, admin operations,
-complaints, audit logs, bulk pickups and campus drives.
+- Role-aware workspaces for `CUSTOMER`, `COLLECTOR`, `HUB_MANAGER`, `RECYCLER`,
+  and `ADMIN`.
+- Secure JWT authentication with bcrypt password hashing, ownership checks,
+  role authorization, Helmet, CORS, rate limiting, and Zod validation.
+- Customer pickup booking with date, time, AM/PM period, address, notes,
+  quantity, category, and item images.
+- Camera-first and manual image upload flow with Gemini-assisted item
+  identification.
+- Explainable collector matching based on verification, availability,
+  supported categories, capacity, service area, coordinates, rating, and
+  workload.
+- Pickup status history, collection proof, actual-weight capture, points,
+  notifications, reviews, and complaints.
+- Hub verification, inventory, batch creation, QR handoffs, recycler
+  processing stages, recovered materials, chain-of-custody events, and
+  recycling certificates.
+- Admin operations, analytics, audit logs, bulk pickup records, and campus
+  drive records.
+- Responsive React interface with public landing pages, role-based navigation,
+  Framer Motion-ready UI, Lucide icons, charts, loading/error/empty states,
+  and PWA support.
 
-## Setup
+## Architecture
 
-### Backend
+```text
+React + Vite + React Router
+        │
+        │ Axios / JSON / multipart uploads
+        ▼
+Express API + JWT + Zod + Multer
+        │
+        ├── Prisma ORM
+        ├── PostgreSQL
+        ├── Gemini Vision API (server-side only)
+        └── PDF / QR generation
+```
+
+### Repository layout
+
+```text
+.
+├── client/
+│   └── src/
+│       ├── App.jsx                 # Route tree and protected routes
+│       ├── NewPickupPage.jsx       # Camera/upload pickup workflow
+│       ├── layouts.jsx             # Public and dashboard layouts
+│       ├── pages.jsx               # Public, customer, and collector pages
+│       ├── phase3.jsx              # Hub, recycler, and admin operations
+│       ├── context/                # Authentication state
+│       ├── services/               # Axios API service
+│       └── styles.css              # Responsive design system
+├── server/
+│   ├── server.js                   # Express API
+│   ├── prisma/
+│   │   ├── schema.prisma           # PostgreSQL schema
+│   │   ├── migrations/             # PostgreSQL migration history
+│   │   └── seed.js                 # Demo data
+│   ├── uploads/                    # Local development uploads
+│   └── .env.example
+├── brain.md                        # Maintainer project memory
+└── README.md
+```
+
+## Local development
+
+### Prerequisites
+
+- Node.js 18 or newer
+- PostgreSQL 14 or newer, local or hosted
+- A Gemini API key is optional and required only for AI item identification
+
+### Install dependencies
+
+```bash
+npm install
+npm --prefix server install
+npm --prefix client install
+```
+
+### Configure the backend
+
+```powershell
+cd server
+copy .env.example .env
+```
+
+Set the values in `server/.env`:
+
+```env
+PORT=5000
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public"
+JWT_SECRET=replace-with-a-long-random-secret
+CLIENT_ORIGIN=http://localhost:5173
+GEMINI_API_KEY=replace-with-your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash
+```
+
+`GEMINI_API_KEY` is optional for the rest of the application. Never commit a
+real key, database URL, JWT secret, or `server/.env`.
+
+### Configure the frontend
+
+The frontend defaults to `http://localhost:5000/api` during local development.
+To override it, create `client/.env`:
+
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+### Run the application
+
+Use two terminals:
+
+```bash
+# Terminal 1
+npm run server
+
+# Terminal 2
+npm run client
+```
+
+The frontend runs at `http://localhost:5173` and the API at
+`http://localhost:5000`.
+
+### Prisma commands
 
 ```bash
 cd server
-npm install
-copy .env.example .env       # Windows
+npx prisma generate
 npx prisma migrate deploy
 npm run prisma:seed
-npm start
 ```
 
-The API runs at `http://localhost:5000`. Health is available at
-`GET /api/health` and returns:
+For local schema development:
+
+```bash
+npm run prisma:migrate
+```
+
+The active Prisma provider is PostgreSQL. The baseline migration is
+`server/prisma/migrations/20260910210500_postgresql_init`.
+
+## Demo accounts
+
+The seed script creates the following clearly fake demo accounts. All use
+`Demo@12345` as the local demo password.
+
+| Role | Email |
+| --- | --- |
+| Customer | `customer@kabadivala.demo` |
+| Collector | `collector@kabadivala.demo` |
+| Hub manager | `hub@kabadivala.demo` |
+| Recycler | `recycler@kabadivala.demo` |
+| Admin | `admin@kabadivala.demo` |
+
+Public registration supports only customer and collector accounts. Operational
+roles are provisioned by seed/admin processes.
+
+## Main user journeys
+
+### Customer
+
+1. Register or sign in.
+2. Open **New pickup**.
+3. Take a photo or upload a JPG, JPEG, PNG, or WEBP image.
+4. Review the optional Gemini suggestion and edit the fields.
+5. Choose an address, date, time, and AM/PM period.
+6. Submit the pickup and track its status, proof, points, notifications, and
+   certificate.
+
+### Collector
+
+Collectors see eligible requests, accept work, advance status, and record
+actual weight with optional collection proof. Customer item photos are visible
+to the assigned operational team.
+
+### Hub manager
+
+Hub managers verify collected weights, inspect photos, manage inventory,
+create batches, generate replaceable QR handoff tokens, and send batches to
+active recyclers.
+
+### Recycler
+
+Recyclers accept or reject batches, record processing stages and recovered
+materials, and complete recycling. Completion creates a downloadable
+Kabadivala recycling certificate.
+
+### Administrator
+
+Administrators manage users, verification, account status, pickups, batches,
+complaints, notifications, analytics, audit logs, hubs, collectors, and
+recyclers.
+
+## Pickup and recycling lifecycle
+
+Pickup requests begin at `REQUESTED` and follow server-enforced transitions:
+
+```text
+REQUESTED
+  → MATCHING
+  → ASSIGNED
+  → ACCEPTED
+  → COLLECTOR_ON_THE_WAY
+  → ARRIVED
+  → COLLECTED
+```
+
+`REJECTED` and `CANCELLED` are terminal paths. Subsequent hub, batch, and
+recycler records preserve custody and processing history until recycling is
+completed.
+
+Pickup codes use the `KC-YYYY-000001` format. Points use a documented
+category-rate formula based on actual collected weight, with estimated weight
+as a fallback where necessary.
+
+## Gemini item identification
+
+The authenticated endpoint is:
+
+```text
+POST /api/ai/identify-item
+```
+
+Send one multipart field named `image`. Supported formats are:
+
+- `image/jpeg`
+- `image/jpg`
+- `.jpg`
+- `.jpeg`
+- `image/png`
+- `image/webp`
+
+The maximum file size is 5 MB. The backend normalizes JPEG MIME variants,
+discovers models enabled for the configured API key, selects a compatible
+`generateContent` model, retries compatible response formats, and validates
+the structured result before returning it.
+
+The result can include:
 
 ```json
-{"success":true,"message":"Kabadivala API is running"}
+{
+  "itemName": "old laptop",
+  "category": "E-waste",
+  "material": "mixed electronics and plastic",
+  "condition": "used",
+  "estimatedWeightKg": 2.4,
+  "confidence": 0.91,
+  "notes": "Review the weight before submitting."
+}
 ```
 
-The backend uses PostgreSQL through Prisma. Set `DATABASE_URL` to your local
-PostgreSQL or hosted Supabase/Neon connection string before running migrations.
-For Render, keep the same PostgreSQL URL in the service environment variables;
-never commit it to GitHub.
+AI output is an assistive suggestion, not an authoritative classification.
+Users can always edit the fields or continue manually if AI is unavailable.
 
-For a hosted deployment, configure Render with:
+## API foundation
+
+Important endpoints include:
+
+```text
+GET    /api/health
+POST   /api/auth/register
+POST   /api/auth/login
+GET    /api/auth/me
+GET    /api/pickups
+POST   /api/pickups
+POST   /api/pickups/:id/match
+PATCH  /api/pickups/:id/status
+POST   /api/ai/identify-item
+GET    /api/traceability/:entity/:id
+GET    /api/certificates/:id/download
+```
+
+The API uses the response shape:
+
+```json
+{
+  "success": true,
+  "message": "Human-readable result",
+  "data": {}
+}
+```
+
+## Production deployment
+
+### Backend on Render
+
+Recommended service settings:
 
 ```text
 Root Directory: server
@@ -52,129 +305,71 @@ Build Command: npm install && npx prisma generate && npx prisma migrate deploy &
 Start Command: npm start
 ```
 
-The migration and seed commands are included in the build command so this
-configuration also works on Render's free plan, where a separate pre-deploy
-command may be unavailable.
+Required Render environment variables:
 
-The repository contains a PostgreSQL baseline migration under
-`server/prisma/migrations/20260910210500_postgresql_init`. Existing SQLite
-migration history is no longer used. Changing `DATABASE_URL` alone is not
-enough; the Prisma provider and migration history must remain PostgreSQL as
-configured in this repository.
-
-### Frontend
-
-```bash
-cd client
-npm install
-npm run dev
+```text
+NODE_ENV=production
+PORT=10000
+DATABASE_URL=<PostgreSQL connection string>
+JWT_SECRET=<random secret with at least 32 characters>
+CLIENT_ORIGIN=https://your-frontend-domain
+GEMINI_API_KEY=<new valid Gemini API key>
+GEMINI_MODEL=gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash
 ```
 
-Set `VITE_API_URL` when the API is not at the default
-`http://localhost:5000/api`.
+The Render free plan may not expose a separate pre-deploy command, so Prisma
+migrations and seeding are intentionally part of the build command. Use a
+PostgreSQL Session Pooler connection when the database provider requires it
+for external hosting.
 
-For optional AI item identification, set `GEMINI_API_KEY` only in the backend
-environment (local `server/.env` or Render Environment Variables). Never put
-the real key in `.env.example`, frontend code, Vercel variables, or GitHub.
-The default model list is `gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash`.
-The backend tries the configured models in order and falls back when a model
-is unavailable. Set `GEMINI_MODEL` in Render only when your Google AI project
-uses a different supported vision model.
+### Frontend on Vercel
 
-## Demo accounts
+Set the following Vercel environment variable:
 
-Every seeded account uses `Demo@12345` as the clearly fake local password:
-
-| Role | Email |
-| --- | --- |
-| Admin | `admin@kabadivala.demo` |
-| Customer | `customer@kabadivala.demo` |
-| Collector | `collector@kabadivala.demo` |
-| Hub manager | `hub@kabadivala.demo` |
-| Recycler | `recycler@kabadivala.demo` |
-
-Public registration intentionally permits only Customer and Collector roles.
-Operational roles are provisioned through seed/admin processes.
-
-## Useful commands
-
-```bash
-# root
-npm run client
-npm run server
-
-# server
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:seed
-
-# client
-npm run build
+```text
+VITE_API_URL=https://your-render-service.onrender.com/api
 ```
 
-## API foundation
+Because `VITE_` values are bundled into browser code, this is configuration,
+not a secret. Never place private credentials in a `VITE_` variable.
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/auth/me` (authenticated)
-- `GET /api/protected` (authenticated smoke route)
-- `GET /api/admin/overview` (ADMIN only)
-- `GET /api/health`
+## Validation
 
-The server never returns `passwordHash`. Keep `.env` local and use a strong
-`JWT_SECRET` outside development.
+Run the existing checks from the repository root:
 
-Set `GEMINI_API_KEY` in `server/.env` to enable the authenticated
-`POST /api/ai/identify-item` endpoint. Send one PNG, JPG, or WEBP image in the
-`image` multipart field (maximum 5MB); the key is used only server-side.
+```bash
+node --check server/server.js
+npm --prefix client run build
+```
 
-## Phase 2 pickup workflow
+The frontend build generates the PWA manifest, service worker, Workbox assets,
+and production bundle. Existing non-blocking warnings include third-party Zod
+annotation messages and the large main JavaScript chunk.
 
-The PostgreSQL database contains `Pickup`, `PickupStatusEvent`, `CollectorMatch`, `Review`, `PointTransaction`, `Notification`, and `Complaint` models in addition to the Phase 1 `User` model. Collection records actual weight and optional proof images. Run `npx prisma migrate deploy` and `npm run prisma:seed` after pulling.
+## Security and data handling
 
-Customer pages are available at `/customer/dashboard`, `/customer/pickups`, `/customer/pickups/new`, `/customer/pickups/:id`, `/customer/profile`, `/customer/points`, `/customer/reviews`, `/customer/complaints`, and `/customer/notifications`. Collectors use the equivalent `/collector/*` pages for requests, status updates, availability, history and ratings.
+- Keep `server/.env`, database credentials, JWT secrets, and Gemini keys out
+  of Git.
+- Rotate any key that has ever been exposed.
+- Store Gemini credentials only on the backend.
+- Use a strong production `JWT_SECRET` of at least 32 characters.
+- Treat AI output as editable user input.
+- Keep role and ownership checks on the server; frontend navigation is not a
+  security boundary.
+- Local `server/uploads` storage is not durable across Render recreation.
 
-Pickup IDs use `KC-YYYY-000001` format. Requests start at `REQUESTED`; the server enforces `MATCHING -> ASSIGNED -> ACCEPTED -> COLLECTOR_ON_THE_WAY -> ARRIVED -> COLLECTED`, with `REJECTED` and `CANCELLED` terminal paths. Status events include actor, note, location and timestamp. Explainable matching prioritizes verification, availability, service area, supported categories, capacity, coordinates, rating and workload.
+## Known limitations and next improvements
 
-After collection, points are calculated as `10 base + category rate x actual kilograms` (falling back to estimated kilograms when actual weight is unavailable; metal 6, paper 3, plastic 4, e-waste 10, glass 3 and textile 4 points/kg; minimum 10). Handoff QR tokens are SHA-256-backed and replaceable. Multer accepts at most five PNG/JPG/WEBP images, 5MB each.
+- Realtime Socket.IO notifications are not implemented.
+- Map views and route optimization are not implemented.
+- Render local uploads should be moved to Supabase Storage, Cloudinary, or
+  another durable object store for production.
+- Bulk pickup and campus-drive APIs exist, but their management UI is compact.
+- The frontend is still delivered as a large primary bundle and can be
+  improved with route-level code splitting.
+- Automated end-to-end coverage is not configured.
 
-## Phase 3 operations
+## License
 
-Hub managers use `/hub/dashboard`, `/hub/collections`, `/hub/batches`,
-`/hub/batches/:id`, `/hub/inventory`, and `/hub/analytics`. The operational UI
-verifies collected weights, groups multiple pickups into a batch, generates a
-replaceable batch handoff QR, and sends a batch to a selected active recycler.
-Batch status is persisted through
-`CREATED → READY_FOR_RECYCLER → SENT_TO_RECYCLER → RECEIVED → PROCESSING →
-RECYCLED → COMPLETED`.
-
-Recyclers use `/recycler/dashboard`, `/recycler/batches`,
-`/recycler/batches/:id`, `/recycler/processing`, `/recycler/history`,
-`/recycler/profile`, and `/recycler/analytics`. The UI supports accepting or
-rejecting assigned batches, recording processing stages and recovered-material
-JSON, and completing recycling. Completing recycling creates a
-`RecyclingCertificate`; only the owning customer, assigned recycler, or an
-admin can download the generated PDF from
-`/api/certificates/:id/download`. `/api/traceability/:entity/:id` returns the
-chain timeline.
-
-Admins have dashboards for users, collectors, hubs, recyclers, pickups, batches,
-complaints, reviews, notifications, analytics, and audit logs. Admin controls
-can verify/unverify users, change account status, and move complaints through
-`OPEN`, `IN_REVIEW`, `RESOLVED`, and `CLOSED`. Bulk pickup and campus drive data
-is stored in PostgreSQL (`BulkPickup`, `CampusDrive`, and `CampusDepartment`).
-
-## Final audit and demo readiness
-
-The Phase 4 stabilization pass verified the authenticated customer-to-certificate
-workflow against the relational database workflow, including collector matching, collection proof,
-hub verification, batch handoff, recycler processing, certificate download,
-points, notifications, and role restrictions. The production client build
-generates an installable PWA with a manifest, service worker, offline
-navigation fallback, theme metadata, and the bundled favicon.
-
-For production deployments, set `NODE_ENV=production` and provide a random
-`JWT_SECRET` of at least 32 characters. The development fallback secret is
-rejected in production. Current limitations are that realtime Socket.IO
-updates and map views are not yet enabled, and the frontend remains a compact
-single-bundle hackathon implementation; both are documented extension points.
+This project is maintained as an educational and product-prototyping
+repository. Add a project-specific license before distributing it publicly.

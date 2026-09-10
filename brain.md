@@ -1,540 +1,265 @@
-# Kabadivala Project Memory
+# Kabadivala Engineering Memory
 
-## Project overview
+This file is the maintainer-facing record of the current implementation. It
+should describe the repository as it exists today, not the original prototype.
+Update it when architecture, deployment, security, or workflow behavior
+changes.
 
-Kabadivala is intended to connect customers, informal e-waste collectors
-(kabadiwalas), collection hubs, recyclers, and administrators. The current
-repository is an early hackathon prototype named Kabadiwala Connect.
+## Current status
 
-## Project goals
+**Phase:** Production-oriented stabilization after the PostgreSQL migration.
 
-The target product is a real, database-backed recycling chain:
+**Validated:** React/Vite production build, Express syntax, Prisma PostgreSQL
+schema/migration setup, seeded demo accounts, authenticated role workflows,
+image upload validation, and the customer pickup camera/upload flow.
 
-Customer -> pickup request -> smart collector matching -> verified collector
--> pickup -> collection hub -> recycler -> processing -> recycling -> digital
-certificate and eco points.
-
-The project must preserve and digitally strengthen the informal collector
-network rather than replace it.
-
-## Current repository audit
-
-### Existing architecture
-
-- Root scripts delegate to separate client and server npm projects.
-- The client is a Vite React single-page prototype.
-- The server is a single Express entry point with in-memory arrays.
-- The server has optional Mongoose connection code, but the current API works
-  without a database.
-- The current architecture does not yet use the required Prisma and SQLite
-  stack.
-- Authentication currently returns JWTs, but API authorization middleware is
-  not implemented.
-- The client calls the API directly with `fetch` and uses a hardcoded
-  `http://localhost:5000/api` base URL.
-- No Socket.IO, upload pipeline, PDF generation, PWA configuration, or
-  frontend test setup is present.
-
-### Existing folder structure
+**Live topology:**
 
 ```text
-/
-├── client/
-│   ├── index.html
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── vite.config.js
-│   └── src/
-│       ├── main.jsx
-│       └── styles.css
-├── server/
-│   ├── .env.example
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── server.js
-│   └── models/
-│       ├── User.js
-│       ├── Pickup.js
-│       ├── MaterialLot.js
-│       └── Transaction.js
-├── package.json
-├── package-lock.json
-├── README.md
-└── prompt.md
+Vercel frontend
+  https://kabadiwala-26.vercel.app
+        │
+        ▼
+Render Express API
+  https://kabadivala-api.onrender.com
+        │
+        ├── Supabase PostgreSQL
+        ├── Gemini API (server-side)
+        └── Render local uploads (temporary)
 ```
 
-`node_modules` directories and the generated client `dist` output are
-environment/build artifacts and are not application source.
+## Product model
 
-### Existing frontend pages and views
+Kabadivala preserves the local collector network while making the recycling
+chain traceable:
 
-There is no React Router route tree. The application switches views through
-local React state in `main.jsx`:
+```text
+Customer
+  → Pickup request
+  → Collector matching
+  → Collection proof and weight
+  → Hub verification and batch
+  → Recycler processing
+  → Recycling certificate and eco points
+```
 
-- Login/demo role selection
-- Household overview
-- Collector dashboard
-- Recycler overview
-- Municipality/admin overview
-- Waste scanner
-- Pickup list/history
-- Digital transactions/wallet
-- Digital Kabadi ID
-- Recycler inventory
-- City analytics
+The five supported roles are:
 
-The current application supports four demo roles: household, collector,
-recycler, and admin. The required hub manager role is not represented.
+| Role | Responsibility |
+| --- | --- |
+| `CUSTOMER` | Create pickups, review AI suggestions, track progress, earn points |
+| `COLLECTOR` | Accept work, advance status, record collection and proof |
+| `HUB_MANAGER` | Verify collections, manage inventory, create and hand off batches |
+| `RECYCLER` | Process batches, record recovered materials, complete recycling |
+| `ADMIN` | Operate and audit the platform across all roles |
 
-### Existing frontend components
+## Source structure
 
-All UI components currently live in one large `client/src/main.jsx` file.
-Reusable local components include:
+### Frontend
 
-- `Login`
-- `Sidebar`
-- role-specific home components
-- `Scanner`
-- `Pickups`
-- `Wallet`
-- `Identity`
-- `Inventory`
-- `Analytics`
-- `RequestTable`
-- `LotTable`
-- `PickupMini`
-- `Stat`
-- `Panel`
+- `client/src/App.jsx` contains the route tree and protected role routes.
+- `client/src/layouts.jsx` contains the public header/footer and role-aware
+  dashboard shell.
+- `client/src/pages.jsx` contains the landing page, public information pages,
+  auth pages, customer pages, and collector pages.
+- `client/src/phase3.jsx` contains hub, recycler, and admin operations.
+- `client/src/NewPickupPage.jsx` contains the camera-first customer pickup
+  form, image upload, AI analysis, scheduling, and submission logic.
+- `client/src/context/AuthContext.jsx` stores the authenticated user and token
+  lifecycle.
+- `client/src/services/api.js` configures Axios and the production API
+  fallback.
+- `client/src/styles.css` contains the responsive design system, animation,
+  scan card, image gallery, focus states, and reduced-motion behavior.
 
-This is useful prototype code, but it should eventually be split into pages,
-layouts, components, services, and role-aware routes without discarding the
-working visual patterns.
+### Backend
 
-### Existing styling and design system
+- `server/server.js` is the Express API entry point.
+- `server/prisma/schema.prisma` is the canonical PostgreSQL schema.
+- `server/prisma/seed.js` creates demo users and operational records.
+- `server/prisma/migrations/20260910210500_postgresql_init` is the active
+  PostgreSQL baseline migration.
+- `server/uploads` is local file storage only and is not durable production
+  object storage.
 
-`client/src/styles.css` contains a custom CSS design system with:
+## Backend guarantees
 
-- green sustainability palette
-- DM Sans and Manrope typography
-- sidebar/topbar dashboard shell
-- cards, panels, status badges, tables, pickup cards, wallet, ID card, and
-  analytics styling
-- responsive rules and dashboard-specific classes
+The API currently provides:
 
-The visual direction is a strong reusable starting point: restrained green
-branding, high contrast dark hero panels, compact data cards, and clear status
-indicators. It currently relies on text symbols rather than the required
-Lucide icon library, and animation support is not present.
-
-### Existing assets and entry points
-
-- `client/index.html` provides the Vite HTML shell and page title.
-- `client/src/main.jsx` is both the React entry point and the complete app
-  implementation.
-- `client/src/styles.css` is the only stylesheet.
-- No local image or icon asset directories exist.
-- No Tailwind configuration exists.
-- No PWA manifest, service worker, or install icons exist.
-
-### Existing backend API
-
-The single `server/server.js` file currently provides:
-
-- `GET /` service information
-- `GET /api/health`
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- dashboard endpoints for household, collector, recycler, and admin
-- `GET /api/pickups`
-- `POST /api/pickups`
-- `PATCH /api/pickups/:id/status`
-- `POST /api/transactions`
-- `GET /api/materials/rates`
-- `POST /api/ai/classify`
-- `GET /api/recycler/inventory`
-- `GET /api/admin/analytics`
-
-The API uses demo arrays for users, pickups, lots, and transactions. Responses
-are not yet normalized to the required `{ success, message, data }` contract.
-Most endpoints have no authentication, role checks, validation, audit log,
-persistent status history, or ownership checks.
-
-### Existing data models
-
-The four Mongoose model files describe early schemas for:
-
-- users
-- pickups
-- material lots
-- transactions
-
-They are not currently imported by the API and do not form a persistent
-workflow. They should inform, but not constrain, the future Prisma schema.
-
-### Existing dependencies
-
-Root:
-
-- npm scripts for starting the client and server
-
-Client:
-
-- React
-- React DOM
-- React Router DOM is installed but unused
-- Vite
-- Vite React plugin
-
-Server:
-
-- Express
-- CORS
-- dotenv
-- jsonwebtoken
-- Mongoose
-
-The target stack dependencies that are not currently installed include Prisma,
-SQLite Prisma client, bcrypt/bcryptjs, Helmet, express-rate-limit, Zod,
-Multer, PDFKit, Socket.IO, Framer Motion, Tailwind CSS, Lucide React, React
-Hook Form, Axios, Recharts, React Leaflet, Leaflet, QR tooling, PWA tooling,
-and test tooling.
-
-### What is reusable
-
-- The existing dashboard visual language and color tokens.
-- The role-specific dashboard information hierarchy.
-- The demo account flow as seed/demo UX inspiration.
-- Pickup, transaction, inventory, and analytics display patterns.
-- Material rate and pickup status concepts.
-- The existing root/client/server separation.
-- The existing README's local startup flow as a starting point for future
-  setup documentation.
-
-### What needs redesign or replacement
-
-- Replace the single state-driven view switcher with route-aware pages and
-  protected role routes.
-- Split `main.jsx` into maintainable modules.
-- Replace direct hardcoded API access with a service layer and environment
-  configuration.
-- Replace Mongoose/in-memory persistence with Prisma and SQLite.
-- Replace plaintext demo passwords with bcrypt-hashed seeded users.
-- Add server authentication, role authorization, validation, and consistent
-  error handling.
-- Rework the current scanner wording: the endpoint is filename-based demo
-  classification and must not be presented as real AI.
-- Replace hardcoded dashboard fallback values with API/database-backed values.
-- Add the missing hub manager role and the full chain-of-custody workflow.
-- Add real pickup creation from the client; the current scanner "Request
-  Pickup" action only shows a toast.
-- Add mobile navigation, accessibility semantics, loading/error/empty states,
-  and purposeful reduced-motion-safe animations.
-
-### Current problems and broken/incomplete behavior
-
-- The current implementation is a demo, not a persistent working platform.
-- The backend's optional MongoDB setup conflicts with the required SQLite
-  architecture.
-- The frontend stores only a user object in local storage; the returned token
-  is not used for API authorization.
-- Dashboard endpoints and pickup endpoints are publicly callable.
-- Registration accepts minimal input and stores a predictable demo password.
-- Role names and workflow statuses use prototype-specific lowercase values and
-  do not cover the required domain statuses.
-- The scanner does not upload or inspect an image and its pickup action does
-  not create a pickup.
-- Several displayed values are fallback or seeded constants rather than
-  calculated database statistics.
-- There is no persistent notification, review, complaint, points, batch,
-  certificate, QR, hub, campus drive, or audit-log feature.
-- The installed React Router dependency is unused.
-- No dedicated error boundary, 404 page, forbidden page, or unauthorized page
-  exists.
-- The README describes MongoDB and prototype behavior, so it will need to be
-  updated as the architecture changes.
-
-### Baseline validation
-
-- `npm --prefix client run build` succeeds with the current client.
-- `node --check server/server.js` succeeds with the current server.
-- Running `npm run build` or `node --check server.js` from the repository root
-  is not valid because those paths/scripts are not defined at the root.
-
-## Recommended migration and improvement plan
-
-1. Establish Phase 1 foundation: Prisma/SQLite configuration, environment
-   handling, server app structure, secure auth, role model, and seed data.
-2. Preserve the existing visual system while splitting the client into route,
-   layout, page, component, context, and service modules.
-3. Implement customer and collector pickup flows with validated forms,
-   ownership-aware APIs, smart rule-based collector matching, and status
-   history.
-4. Add hub, recycler, batch, QR, recycling completion, certificate, points,
-   reviews, complaints, notifications, and audit logs.
-5. Add responsive/mobile navigation, accessible states, maps, charts, uploads,
-   PWA support, and focused tests.
-6. Run a final end-to-end audit, remove prototype fallbacks, update README,
-   and verify seeded demo flows.
-
-## Database schema summary
-
-Not yet implemented. The future Prisma schema should cover users and role
-profiles, addresses, pickups, pickup status history, collector matching,
-collection hubs, batches, recycling records, certificates, point
-transactions, rewards, reviews, complaints, notifications, bulk pickups,
-campus drives, and audit logs.
-
-## Authentication system
-
-Current prototype: demo login returns a JWT and user object. The JWT is not
-currently consumed by protected middleware.
-
-Target: bcrypt password hashes, JWT verification middleware, role
-authorization, ownership checks, safe responses, rate limiting, and secure
-environment-based secrets.
-
-## Roles and permissions
-
-Current: household, collector, recycler, admin.
-
-Target: CUSTOMER, COLLECTOR, HUB_MANAGER, RECYCLER, ADMIN with server-side
-authorization for every protected operation.
-
-## API routes
-
-Current routes are listed in the backend audit above. Target routes should be
-organized under `/api` by auth, users, customers, collectors, hubs,
-recyclers, pickups, tracking, QR, batches, certificates, rewards, reviews,
-complaints, notifications, analytics, admin, bulk pickups, and campus drives.
-
-## Important frontend routes
-
-Current views are local state values rather than URL routes. Target routes
-should provide public auth pages, role-aware dashboards, pickup creation and
-tracking, hub and recycler operations, certificates, complaints, notifications,
-analytics, and fallback unauthorized/forbidden/not-found pages.
-
-## Major components
-
-Current components are colocated in `client/src/main.jsx`; see the frontend
-audit above. Future shared components should include navigation, status
-timeline, forms, tables/cards, modal/drawer, toast, loading, error, empty
-state, QR scanner, map, charts, and certificate presentation.
-
-## Feature completion status
-
-### Prototype-present
-
-- Demo login
-- Four role dashboards
-- Basic pickup list and status mutation
-- Material rates
-- Filename-based classifier demo
-- Transaction list
-- Recycler inventory display
-- Admin analytics display
-- Responsive CSS foundation
-
-### Not implemented
-
-- Prisma/SQLite persistence
-- Full authentication and authorization
-- Hub manager role
-- Smart Collector Matching
-- Full pickup lifecycle and status history
-- QR verification
-- Image uploads
-- Batches and recycling records
-- Certificates and PDF download
-- Eco points and rewards
-- Reviews and complaints
-- Persistent notifications and realtime updates
-- Maps
-- Bulk pickups and campus drives
-- Audit logs
-- PWA
-- Automated tests
+- JWT authentication with bcrypt password hashes.
+- Role authorization and ownership checks.
+- Helmet security headers, CORS, auth rate limiting, and Zod validation.
+- Consistent `{ success, message, data }` response envelopes.
+- Pickup status transition enforcement and persistent event timelines.
+- Collector matching with explainable ranking reasons.
+- Multer file-size and image-format validation.
+- QR token generation with hashed server-side values.
+- PDF certificate generation and ownership-aware downloads.
+- Persistent notifications, reviews, complaints, points, batches, processing
+  stages, custody events, audit logs, bulk pickups, and campus drives.
 
 ## Pickup workflow
 
-Current prototype statuses are `requested`, `accepted`, `picked_up`, and
-`completed`, stored only in memory.
+Allowed pickup statuses:
 
-Target workflow includes REQUESTED, MATCHING, ASSIGNED, ACCEPTED,
-COLLECTOR_ON_THE_WAY, ARRIVED, COLLECTED, AT_COLLECTION_HUB, BATCH_CREATED,
-SENT_TO_RECYCLER, RECEIVED_BY_RECYCLER, PROCESSING, RECYCLED, COMPLETED,
-CANCELLED, and REJECTED, with actor, timestamp, optional location, and note
-for each transition.
+```text
+REQUESTED
+MATCHING
+ASSIGNED
+ACCEPTED
+COLLECTOR_ON_THE_WAY
+ARRIVED
+COLLECTED
+REJECTED
+CANCELLED
+```
 
-## QR workflow
+The server, not the client, controls legal transitions. A customer starts at
+`REQUESTED`; matching ranks active collectors by:
 
-Not implemented. Target QR values must contain secure server-issued tokens and
-be validated by the backend for collector, hub, and recycler scans.
+1. Verification
+2. Availability
+3. Supported category
+4. Capacity
+5. Service area
+6. Coordinates
+7. Rating
+8. Existing workload
 
-## Recycling workflow
+Collection records actual weight and optional proof images. Points are created
+once per completed collection using category rates and actual weight, with an
+estimated-weight fallback.
 
-Not implemented. Target flow is hub receipt and weighing, batch creation,
-recycler receipt, processing stages, recovered materials, and completion.
+## Customer image and AI workflow
 
-## Certificate workflow
+The customer page supports:
 
-Not implemented. Target output is a Kabadivala Digital Recycling Certificate
-or Platform Recycling Record, never a government certificate.
+- Mobile camera capture with `capture="environment"`.
+- Gallery/file-picker upload.
+- JPG, JPEG, PNG, and WEBP extensions and MIME variants.
+- A 5 MB maximum per image.
+- Preview before submission.
+- Automatic analysis after selecting a file.
+- Manual editing of every AI-suggested field.
+- Pickup submission even when AI is unavailable.
 
-## Environment variables
+The authenticated endpoint is `POST /api/ai/identify-item` with multipart
+field `image`.
 
-Current server example:
+### Gemini implementation
 
-- `PORT`
-- `MONGODB_URI`
-- `JWT_SECRET`
+`server/server.js`:
 
-Target environment configuration must remove the MongoDB requirement and
-define SQLite/Prisma database URL, JWT settings, client origin, upload limits,
-and other non-secret runtime settings. Secrets must remain out of source
-control.
+1. Rejects missing configuration or missing files.
+2. Validates one image in memory.
+3. Normalizes JPEG MIME variants to `image/jpeg`.
+4. Queries `/v1beta/models` using the server-side API key.
+5. Selects enabled models supporting `generateContent`, preferring the
+   configured flash model list.
+6. Sends the image as Gemini `inlineData`.
+7. Retries without strict `responseMimeType` if a provider rejects JSON mode.
+8. Removes optional Markdown code fences from the response.
+9. Validates the result with `itemIdentificationSchema`.
+10. Logs only truncated provider details, never the API key.
 
-## Important commands
+The result is advisory. The user remains responsible for reviewing category,
+condition, weight, and item details.
 
-Current:
+### If Gemini fails
 
-- `npm run server`
-- `npm run client`
-- `npm --prefix client run build`
-- `npm --prefix server run dev`
+Check Render in this order:
 
-Target Prisma, seed, test, and production commands still need to be added to
-the appropriate package files.
+1. `GEMINI_API_KEY` exists and is a newly rotated valid key.
+2. The key has Generative Language API access.
+3. API restrictions do not block the Gemini API.
+4. Render is running the latest backend commit.
+5. Render logs show which provider status/model failed.
 
-## Known limitations
+Never put the key in `client/.env`, a `VITE_` variable, `.env.example`, a
+commit, a screenshot, or a support message.
 
-The current app is demo-only, memory-backed, minimally validated, and lacks
-the production security, persistence, workflow, and role coverage required by
-the project brief.
+## Database and deployment memory
 
-## Bugs
+The application uses PostgreSQL, not SQLite. The migration lock and schema
+must remain PostgreSQL-compatible. Render uses:
 
-No new bug fixes were made during Phase 0. The prototype limitations listed
-above should be treated as implementation risks, not silently ignored.
+```text
+npm install && npx prisma generate && npx prisma migrate deploy && npm run prisma:seed
+```
 
-## Future improvements
+The seed script is idempotent and resets demo account passwords to
+`Demo@12345`, which prevents stale deployed demo credentials.
 
-After the required MVP: multilingual and voice-assisted collector UX, real
-image classification, route optimization, demand prediction, external
-payments, production object storage, stronger identity verification, and
-municipal integrations.
+The Supabase Session Pooler is preferred when direct database connections
+produce Render `P1001` connectivity failures.
 
-## Current phase
+## Historical incident notes
 
-Phase 3 - Hub, batch, recycler, certificate and admin operations completed.
+### PostgreSQL migration BOM
 
-## Last completed task
+The initial PostgreSQL migration contained a UTF-8 BOM. PostgreSQL rejected
+the first character with SQLSTATE `42601`. The migration is now BOM-free.
+Failed migration state was resolved before redeploying.
 
-Reviewed and completed the Phase 3 operational UI on top of the Phase 2
-customer and collector pickup workflow. The product now includes persistent
-batch inventory, chain-of-custody events, recycler processing stages, PDF
-certificates, admin monitoring, complaint management, audit logs, bulk pickups,
-campus drives, and database-backed analytics. The Phase 2 customer and
-collector pickup workflow remains intact on top of the
-Phase 1 React/Vite foundation, responsive route tree, centralized Axios/auth
-context, PWA build, Express security middleware, Prisma SQLite, JWT/bcrypt
-auth, role authorization, migration, and five-role seed data. The existing
-green visual direction and dashboard information hierarchy were preserved
-while the old state-switching prototype was retired.
+### Production login
 
-The Phase 3 routes now make real authenticated API calls: hubs verify weights,
-create and extend batches, generate replaceable handoff QR codes, and send batches;
-recyclers accept/reject, record stages and recovered materials, and complete
-recycling; admins can manage user verification/status and complaint status.
-Nested relation values render correctly in tables, the hub batch detail route is
-declared, and certificate downloads enforce customer/recycler ownership.
+The deployed frontend originally used `http://localhost:5000/api`. The Axios
+service now uses `VITE_API_URL` and a production Render fallback. Production
+frontend deployments must set `VITE_API_URL` explicitly.
 
-Validation completed:
+### JSON login body
 
-- `npm --prefix client run build`
-- `node --check server/server.js`
-- `npx prisma validate --schema prisma/schema.prisma`
-- live health, login, hub/recycler dashboard and Phase 3 endpoint smoke requests
+Login requests must send valid JSON with quoted property names and the
+`Content-Type: application/json` header. Browser forms and the Axios service
+now handle this correctly.
 
-## Phase 2 files
+### Secret exposure
 
-Created/updated the client route foundation in `client/src/App.jsx`,
-`layouts.jsx`, `pages.jsx`, `context/AuthContext.jsx`, `services/api.js`,
-`main.jsx`, and `styles.css`; PWA is configured in `client/vite.config.js`.
-The server foundation is in `server/server.js`,
-`server/prisma/schema.prisma`, `server/prisma/seed.js`, and the initial
-Prisma migration. README documents setup, demo users and API routes.
+A Gemini key was previously placed in a sample environment file. The
+placeholder-only file and reachable Git history were sanitized. Any key that
+was ever exposed must still be revoked in Google AI Studio.
 
-## Phase 4 final audit (2026-09-09)
+## Validation commands
 
-### Feature status
+```bash
+node --check server/server.js
+npm --prefix client run build
+npx prisma validate --schema server/prisma/schema.prisma
+```
 
-- **WORKING:** React/Vite routing, public/auth pages, role-aware dashboard
-  shells, customer pickup creation, collector matching/status lifecycle,
-  collection proof, points, notifications, reviews and complaints.
-- **WORKING:** Hub verification and batching, QR handoff, recycler processing,
-  chain-of-custody events, certificate PDF generation/download, admin
-  monitoring, user verification/status, complaint workflow, audit logs and
-  database-backed analytics.
-- **WORKING:** Prisma migrations/seed, PostgreSQL persistence, JWT/bcrypt auth,
-  Helmet, CORS, auth rate limiting, request validation, upload restrictions,
-  PWA manifest/service worker and offline navigation fallback.
-- **PARTIALLY WORKING:** Analytics are API-backed and charted for key views,
-  but the UI remains intentionally compact rather than a complete reporting
-  suite. Bulk pickup and campus-drive APIs are persisted; dedicated rich
-  management screens are limited.
-- **NOT IMPLEMENTED:** Socket.IO realtime delivery and Leaflet/OpenStreetMap
-  maps. These are documented future integration points, not simulated.
+The existing frontend build may report non-blocking third-party Zod annotation
+warnings and a large main chunk. These are known warnings, not build failures.
 
-### Final validation
+## Current limitations
 
-- Full live database demo passed: customer pickup -> matching -> collector
-  acceptance/arrival/collection -> hub verification -> batch -> recycler
-  acceptance/processing/recycling -> certificate download.
-- Customer points and notifications were created during the flow.
-- Customer access to hub operations and protected mutations returned HTTP 403.
-- `npm --prefix client run build` passed and generated `manifest.webmanifest`,
-  `sw.js`, Workbox assets and the favicon.
-- `node --check server/server.js`, Prisma validation and source diagnostics
-  passed.
+- Render local uploads disappear on service recreation; use durable object
+  storage for production.
+- Socket.IO realtime delivery is not implemented.
+- Map/route views are not implemented.
+- Bulk pickup and campus-drive management screens are compact.
+- There is no configured automated end-to-end test suite.
+- The frontend primary bundle is larger than the ideal code-splitting target.
+- AI classification remains probabilistic and must not be treated as an
+  authoritative material or valuation decision.
 
-### Stabilization changes
+## Safe next improvements
 
-- Production startup now rejects missing/short `JWT_SECRET` values.
-- Recharts visualizations were added for hub category weight and admin pickup
-  status.
-- Keyboard focus-visible styles and reduced-motion CSS were added.
-- Certificate ownership checks and QR documentation were reconciled.
+1. Move uploads to Supabase Storage or Cloudinary.
+2. Add focused API and end-to-end tests for auth, pickup transitions, and AI
+   multipart requests.
+3. Add route-level frontend code splitting.
+4. Add Socket.IO notifications and map-assisted collector routing.
+5. Add model/provider observability without recording credentials or image
+   contents.
+6. Expand bulk pickup and campus-drive management screens.
 
-## Remaining intentional scope
+## Working conventions
 
-Socket.IO realtime updates, Leaflet maps, multilingual and voice-assisted UX,
-and external production integrations remain future work.
-
-## Next recommended task
-
-## Phase 2 implementation notes (2026-09-09)
-
-Phase 1 remains intact and is now backed by a Prisma SQLite pickup workflow.
-Phase 3 adds `Batch`, `BatchPickup`, `ChainOfCustodyEvent`,
-`ProcessingStage`, `RecyclingCertificate`, `AuditLog`, `BulkPickup`,
-`CampusDrive`, and `CampusDepartment`. The migration is
-`20260909175243_phase3_hubs_recyclers_admin`.
-
-`server/server.js` enforces JWT role/ownership checks and the complete pickup lifecycle. `POST /api/pickups` starts every request at REQUESTED, and `POST /api/pickups/:id/match` ranks verified, available collectors by service area, categories, capacity, coordinates, rating and workload. Multer validates five 5MB PNG/JPG/WEBP images. Collector collection submission records actual weight and optional proof, then creates one immutable points transaction using the documented category formula. QR tokens are random, hashed and replaceable; status events provide the timeline and notifications are persistent.
-
-The React Router application now has dedicated customer, collector, hub,
-recycler and admin routes, with responsive loading/error/empty states and
-certificate/bulk pickup views. Hub managers verify collection, assemble and
-handoff batches; recyclers accept/reject, process and complete them; successful
-recycling generates an authenticated PDF certificate.
-
-## PostgreSQL migration (2026-09-10)
-
-The active database provider is now PostgreSQL. `server/prisma/schema.prisma`
-uses the PostgreSQL provider, `.env.example` documents a PostgreSQL URL, and
-the migration history has been replaced with the generated PostgreSQL baseline
-`20260910210500_postgresql_init`. Render should run Prisma generation during
-build and `prisma migrate deploy` plus the idempotent seed during pre-deploy.
-The historical SQLite notes above describe the earlier implementation and are
-retained only as audit history.
+- Make surgical changes and preserve existing user behavior unless a change is
+  explicitly requested.
+- Keep secrets out of source control.
+- Validate changed backend syntax and the frontend build before pushing.
+- Update this file and `README.md` when architecture or deployment behavior
+  changes.
+- Commit and push completed changes unless the user explicitly requests local
+  changes only.
