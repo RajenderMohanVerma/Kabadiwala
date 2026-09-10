@@ -3,11 +3,12 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { DashboardLayout, PublicLayout, AuthLayout } from './layouts'
 import {
   LoginPage, RegisterPage, LandingPage, DashboardPage, NotFoundPage, ForbiddenPage,
-  CustomerPickupsPage, NewPickupPage, PickupDetailPage, ProfilePage, PointsPage, PublicInfoPage,
+  CustomerPickupsPage, PickupDetailPage, ProfilePage, PointsPage, PublicInfoPage,
   ReviewsPage, ComplaintsPage, NotificationsPage, CollectorRequestsPage,
   CollectorDetailPage, CollectorHistoryPage, CollectorAvailabilityPage, CollectorRatingsPage
 } from './pages'
 import { Phase3Page, RecyclerBatchPage, HubBatchPage, BulkPickupPage, CertificatePage } from './phase3'
+import NewPickupPage from './NewPickupPage'
 
 function Protected({ children, roles }) {
   const { user, loading } = useAuth()
