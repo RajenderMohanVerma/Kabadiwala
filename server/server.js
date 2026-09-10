@@ -211,6 +211,14 @@ const itemIdentificationSchema = z.object({
   confidence: z.number().finite().min(0).max(1),
   notes: z.string().trim().max(1000)
 })
+const providerErrorMessage = (body) => {
+  try {
+    const parsed = JSON.parse(body)
+    return parsed?.error?.message || body
+  } catch {
+    return body
+  }
+}
 const identifyItem = async (req, res) => {
   if (!process.env.GEMINI_API_KEY) return send(res, 503, 'AI item identification is not configured')
   if (!req.file) return send(res, 400, 'An image is required')
@@ -222,7 +230,26 @@ const identifyItem = async (req, res) => {
       .split(',')
       .map((model) => model.trim().replace(/^models\//, ''))
       .filter(Boolean)
-    const models = [...new Set([...configuredModels, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'])]
+    let availableModels = []
+    const modelListResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' }
+    })
+    if (modelListResponse.ok) {
+      const modelList = await modelListResponse.json()
+      availableModels = (modelList.models || [])
+        .filter((model) => model.supportedGenerationMethods?.includes('generateContent'))
+        .map((model) => model.name?.replace(/^models\//, ''))
+        .filter(Boolean)
+    } else {
+      const body = await modelListResponse.text()
+      console.error(`Gemini model discovery failed with status ${modelListResponse.status}: ${providerErrorMessage(body).slice(0, 300)}`)
+    }
+    const preferredModels = [...configuredModels, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    const models = [...new Set([
+      ...preferredModels.filter((model) => availableModels.length === 0 || availableModels.includes(model)),
+      ...availableModels.filter((model) => /flash/i.test(model))
+    ])]
     let response
     let lastProviderMessage = ''
     const imageData = req.file.buffer.toString('base64')
@@ -251,10 +278,10 @@ const identifyItem = async (req, res) => {
       if (![400, 404, 429].includes(response.status)) break
     }
     if (!response.ok) {
-      console.error(`Gemini item identification failed with status ${response.status}: ${lastProviderMessage.slice(0, 500)}`)
+      console.error(`Gemini item identification failed with status ${response.status}: ${providerErrorMessage(lastProviderMessage).slice(0, 500)}`)
       if ([401, 403].includes(response.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
       if (response.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
-      return send(res, 502, 'Gemini could not analyse this image. Check the configured model and Generative Language API access in Render.')
+      return send(res, 502, 'Gemini could not analyse this image. Render must use a Gemini API key with access to at least one vision model that supports generateContent.')
     }
     const payload = await response.json()
     const text = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text
