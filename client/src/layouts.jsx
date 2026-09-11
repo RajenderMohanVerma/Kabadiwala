@@ -1,7 +1,36 @@
-import { ArrowRight, Bell, ChevronDown, ClipboardList, Home, LayoutDashboard, Leaf, LogOut, Menu, Recycle, Star, Truck, UserRound, X } from 'lucide-react'
+import { ArrowRight, ArrowUp, Bell, ChevronDown, ClipboardList, Home, LayoutDashboard, Leaf, LogOut, Menu, Recycle, Star, Truck, UserRound, X } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from './context/AuthContext'
+
+// ── Scroll to top on every route change ──────────────────────────────────────
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [pathname])
+  return null
+}
+
+// ── Back-to-top floating button ───────────────────────────────────────────────
+function BackToTopButton() {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 400)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+  return (
+    <button
+      className={`back-to-top${visible ? ' back-to-top--visible' : ''}`}
+      onClick={scrollTop}
+      aria-label="Back to top"
+    >
+      <ArrowUp size={20} />
+    </button>
+  )
+}
 
 const customerNav = [
   ['Overview', LayoutDashboard, '/customer/dashboard'], ['My pickups', ClipboardList, '/customer/pickups'],
@@ -31,15 +60,37 @@ export function PublicLayout() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
 
-  useState(() => {
+  useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  // FAQ link — go to how-it-works page and scroll to faq section
+  const handleFaqClick = (e) => {
+    e.preventDefault()
+    setMobileOpen(false)
+    if (location.pathname === '/how-it-works') {
+      document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      navigate('/how-it-works')
+      setTimeout(() => {
+        document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })
+      }, 400)
+    }
+  }
+
   return (
     <>
+      <ScrollToTop />
+
       {/* ── HEADER ── */}
       <header className={`pub-header${scrolled ? ' pub-header--scrolled' : ''}`}>
         <div className="pub-header__inner container">
@@ -52,7 +103,7 @@ export function PublicLayout() {
           <nav className="pub-nav">
             <Link className={`pub-nav__link${location.pathname === '/how-it-works' ? ' active' : ''}`} to="/how-it-works">How it works</Link>
             <Link className={`pub-nav__link${location.pathname === '/impact' ? ' active' : ''}`} to="/impact">Our impact</Link>
-            <a className="pub-nav__link" href="/#faq">FAQ</a>
+            <button className="pub-nav__link pub-nav__link--btn" onClick={handleFaqClick}>FAQ</button>
             <div className="pub-nav__divider" />
             <Link className="pub-nav__signin" to="/login">Sign in</Link>
             <Link className="button primary pub-nav__cta" to="/register">Get started <ArrowRight size={15} /></Link>
@@ -77,7 +128,7 @@ export function PublicLayout() {
             <nav className="pub-drawer__nav">
               <Link to="/how-it-works" onClick={() => setMobileOpen(false)}>How it works</Link>
               <Link to="/impact" onClick={() => setMobileOpen(false)}>Our impact</Link>
-              <a href="/#faq" onClick={() => setMobileOpen(false)}>FAQ</a>
+              <button className="pub-drawer__nav-btn" onClick={handleFaqClick}>FAQ</button>
             </nav>
             <div className="pub-drawer__actions">
               <Link className="button secondary full" to="/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
@@ -89,6 +140,7 @@ export function PublicLayout() {
       </header>
 
       <Outlet />
+      <BackToTopButton />
 
       {/* ── FOOTER ── */}
       <footer className="site-footer">
@@ -113,7 +165,7 @@ export function PublicLayout() {
                 <b>Platform</b>
                 <Link to="/how-it-works">How it works</Link>
                 <Link to="/impact">Our impact</Link>
-                <a href="/#faq">FAQs</a>
+                <button className="footer-faq-btn" onClick={handleFaqClick}>FAQs</button>
               </div>
               <div className="footer-col">
                 <b>Get started</b>
