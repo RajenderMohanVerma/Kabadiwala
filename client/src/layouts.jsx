@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, ClipboardList, Home, LayoutDashboard, Leaf, LogOut, Menu, Recycle, Star, Truck, UserRound, X } from 'lucide-react'
+import { ArrowRight, Bell, ChevronDown, ClipboardList, Home, LayoutDashboard, Leaf, LogOut, Menu, Recycle, Star, Truck, UserRound, X } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from './context/AuthContext'
@@ -27,7 +27,131 @@ const adminNav = [
   ['Recyclers', Recycle, '/admin/recyclers'], ['Pickups', ClipboardList, '/admin/pickups'], ['Batches', ClipboardList, '/admin/batches'],
   ['Complaints', Bell, '/admin/complaints'], ['Notifications', Bell, '/admin/notifications'], ['Analytics', Leaf, '/admin/analytics'], ['Audit logs', ClipboardList, '/admin/audit-logs']
 ]
-export function PublicLayout() { return <><header className="site-header container"><Link className="logo" to="/"><span className="brand-mark"><Recycle size={19} /></span><span>Kabadivala</span></Link><nav><Link to="/how-it-works">How it works</Link><Link to="/impact">Our impact</Link><Link to="/#faq">FAQ</Link><Link className="header-login" to="/login">Sign in <ChevronDown size={15} /></Link><Link className="button primary small" to="/register">Get started</Link></nav></header><Outlet /><footer className="site-footer"><div className="container footer-grid"><div><Link className="logo" to="/"><span className="brand-mark"><Recycle size={17} /></span>Kabadivala</Link><p>Responsible recycling, made simple for every home and every handoff.</p><span className="footer-note">Fair work · Clean cities · Shared future</span></div><div><b>Explore</b><Link to="/how-it-works">How it works</Link><Link to="/impact">Our impact</Link><Link to="/#faq">FAQs</Link></div><div><b>Start today</b><Link to="/register">Book a pickup</Link><Link to="/login">Sign in</Link><a href="mailto:hello@kabadivala.example">Contact support</a></div></div><div className="container footer-bottom"><span>© 2026 Kabadivala</span><span>Built for a circular India</span></div></footer></> }
+export function PublicLayout() {
+  const [scrolled, setScrolled] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const location = useLocation()
+
+  useState(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', onScroll)
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  return (
+    <>
+      {/* ── HEADER ── */}
+      <header className={`pub-header${scrolled ? ' pub-header--scrolled' : ''}`}>
+        <div className="pub-header__inner container">
+          <Link className="logo" to="/">
+            <span className="brand-mark"><Recycle size={20} /></span>
+            <span className="logo-text">Kabadivala</span>
+          </Link>
+
+          {/* Desktop nav */}
+          <nav className="pub-nav">
+            <Link className={`pub-nav__link${location.pathname === '/how-it-works' ? ' active' : ''}`} to="/how-it-works">How it works</Link>
+            <Link className={`pub-nav__link${location.pathname === '/impact' ? ' active' : ''}`} to="/impact">Our impact</Link>
+            <a className="pub-nav__link" href="/#faq">FAQ</a>
+            <div className="pub-nav__divider" />
+            <Link className="pub-nav__signin" to="/login">Sign in</Link>
+            <Link className="button primary pub-nav__cta" to="/register">Get started <ArrowRight size={15} /></Link>
+          </nav>
+
+          {/* Mobile hamburger */}
+          <button className="pub-hamburger" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+            <span /><span /><span />
+          </button>
+        </div>
+
+        {/* Mobile drawer */}
+        {mobileOpen && (
+          <div className="pub-drawer">
+            <div className="pub-drawer__head">
+              <Link className="logo" to="/" onClick={() => setMobileOpen(false)}>
+                <span className="brand-mark"><Recycle size={18} /></span>
+                <span className="logo-text">Kabadivala</span>
+              </Link>
+              <button className="pub-drawer__close" onClick={() => setMobileOpen(false)} aria-label="Close">✕</button>
+            </div>
+            <nav className="pub-drawer__nav">
+              <Link to="/how-it-works" onClick={() => setMobileOpen(false)}>How it works</Link>
+              <Link to="/impact" onClick={() => setMobileOpen(false)}>Our impact</Link>
+              <a href="/#faq" onClick={() => setMobileOpen(false)}>FAQ</a>
+            </nav>
+            <div className="pub-drawer__actions">
+              <Link className="button secondary full" to="/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
+              <Link className="button primary full" to="/register" onClick={() => setMobileOpen(false)}>Get started</Link>
+            </div>
+          </div>
+        )}
+        {mobileOpen && <div className="pub-drawer__scrim" onClick={() => setMobileOpen(false)} />}
+      </header>
+
+      <Outlet />
+
+      {/* ── FOOTER ── */}
+      <footer className="site-footer">
+        <div className="container">
+          {/* Top band */}
+          <div className="footer-top">
+            <div className="footer-brand">
+              <Link className="logo footer-logo" to="/">
+                <span className="brand-mark"><Recycle size={18} /></span>
+                <span className="logo-text">Kabadivala</span>
+              </Link>
+              <p>Responsible recycling, made simple for every home and every handoff across India.</p>
+              <div className="footer-badges">
+                <span className="footer-badge">♻ Circular economy</span>
+                <span className="footer-badge">🌿 Eco-certified</span>
+                <span className="footer-badge">🤝 Fair trade</span>
+              </div>
+            </div>
+
+            <div className="footer-links-group">
+              <div className="footer-col">
+                <b>Platform</b>
+                <Link to="/how-it-works">How it works</Link>
+                <Link to="/impact">Our impact</Link>
+                <a href="/#faq">FAQs</a>
+              </div>
+              <div className="footer-col">
+                <b>Get started</b>
+                <Link to="/register">Book a pickup</Link>
+                <Link to="/login">Sign in</Link>
+                <Link to="/register?role=COLLECTOR">Become a collector</Link>
+              </div>
+              <div className="footer-col">
+                <b>Support</b>
+                <a href="mailto:hello@kabadivala.example">Contact us</a>
+                <a href="#">Privacy policy</a>
+                <a href="#">Terms of service</a>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats band */}
+          <div className="footer-stats">
+            <div className="footer-stat"><strong>10,000+</strong><span>Pickups completed</span></div>
+            <div className="footer-stat"><strong>500+</strong><span>Verified collectors</span></div>
+            <div className="footer-stat"><strong>50 tons</strong><span>Responsibly recycled</span></div>
+            <div className="footer-stat"><strong>20+ cities</strong><span>Across India</span></div>
+          </div>
+
+          {/* Bottom bar */}
+          <div className="footer-bottom">
+            <span>© 2026 Kabadivala · Built for a circular India 🇮🇳</span>
+            <div className="footer-bottom-links">
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+              <a href="#">Sitemap</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </>
+  )
+}
 export function AuthLayout() { return <Outlet /> }
 export function DashboardLayout() {
   const [open, setOpen] = useState(false); const { user, logout } = useAuth(); const navigate = useNavigate(); const location = useLocation()

@@ -39,11 +39,20 @@ function useAction() {
   return { ...state, run }
 }
 
-function Page({ title, copy, children, action }) {
-  return <div className="dashboard-content">
-    <div className="page-title"><div><span className="eyebrow">Phase 3 operations</span><h1>{title}</h1><p>{copy}</p></div>{action}</div>
-    {children}
-  </div>
+function Page({ title, copy, children, action, eyebrow = 'Operations' }) {
+  return (
+    <div className="dashboard-content">
+      <div className="ph">
+        <div className="ph__copy">
+          <span className="eyebrow">{eyebrow}</span>
+          <h1 className="ph__title">{title}</h1>
+          {copy && <p className="ph__sub">{copy}</p>}
+        </div>
+        {action && <div className="ph__action">{action}</div>}
+      </div>
+      {children}
+    </div>
+  )
 }
 function State({ state }) {
   if (state.loading) return <LoadingState />
@@ -93,7 +102,7 @@ function HubCollections() {
     if (result) { setEditing(null); state.reload() }
   }
   const pickups = state.data?.pickups || []
-  return <Page title="Hub collections" copy="Verify collected weights before they enter a traceable batch."><State state={state} /><ActionMessage action={action} />
+  return <Page title="Hub collections" copy="Verify collected weights before they enter a traceable batch." eyebrow="Hub workspace"><State state={state} /><ActionMessage action={action} />
     <Table rows={pickups} columns={[
       ['pickupCode', 'Pickup'], ['category', 'Category'], ['images', 'Item photos'], ['actualWeight', 'Weight (kg)'], ['status', 'Status'],
       ['actions', 'Actions', (pickup) => editing === pickup.id ? <form className="inline-form" onSubmit={(event) => verify(event, pickup)}><input required name="actualWeight" type="number" min="0.01" step="0.01" defaultValue={pickup.actualWeight || ''} aria-label="Verified weight" /><input name="note" placeholder="Note" aria-label="Verification note" /><button className="button primary small" disabled={action.busy}>Verify</button><button type="button" className="button secondary small" onClick={() => setEditing(null)}>Cancel</button></form> : <button className="button secondary small" onClick={() => setEditing(pickup.id)}>Verify weight</button>]
