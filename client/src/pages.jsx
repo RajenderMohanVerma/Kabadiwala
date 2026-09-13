@@ -1268,6 +1268,7 @@ function CollectorRequestCard({ pickup }) {
         <b>{pickup.pickupCode}</b>
         <small><MapPin size={11} /> {pickup.address || pickup.customer?.address || 'Address on file'}</small>
         <small><Package size={11} /> {pickup.category}</small>
+        <PickupImages images={pickup.images} label="Customer item photos" />
       </div>
       <div className="creq-card__actions">
         <PickupStatusBadge status={pickup.status} />

@@ -99,6 +99,13 @@ const ownerInclude = {
 }
 const normalizePickup = (pickup) => ({ ...pickup, images: JSON.parse(pickup.imagesJson || '[]'), imagesJson: undefined })
 const normalizeCollectionProof = (pickup) => ({ ...pickup, collectionProof: JSON.parse(pickup.collectionProofJson || '[]'), collectionProofJson: undefined })
+const normalizeBatch = (batch) => ({
+  ...batch,
+  pickups: batch.pickups?.map((batchPickup) => ({
+    ...batchPickup,
+    pickup: normalizePickup(batchPickup.pickup)
+  }))
+})
 const codeFor = async () => {
   const year = new Date().getFullYear()
   const count = await prisma.pickup.count({ where: { createdAt: { gte: new Date(`${year}-01-01T00:00:00.000Z`) } } })
@@ -406,7 +413,7 @@ app.post('/api/pickups/qr/verify', auth, asyncRoute(async (req, res) => {
 
 app.get('/api/collector/requests', auth, allow('COLLECTOR'), asyncRoute(async (req, res) => {
   const pickups = await prisma.pickup.findMany({ where: { OR: [{ collectorId: req.user.id }, { status: { in: ['REQUESTED', 'MATCHING'] } }] }, include: { customer: { select: { name: true, phone: true, address: true } }, events: { orderBy: { createdAt: 'desc' }, take: 1 } }, orderBy: { createdAt: 'desc' } })
-  send(res, 200, 'Collector requests loaded', { pickups })
+  send(res, 200, 'Collector requests loaded', { pickups: pickups.map(normalizePickup) })
 }))
 app.post('/api/collector/requests/:id/accept', auth, allow('COLLECTOR'), asyncRoute(async (req, res) => {
   const pickup = await prisma.pickup.findUnique({ where: { id: req.params.id } })
@@ -418,7 +425,7 @@ app.post('/api/collector/requests/:id/accept', auth, allow('COLLECTOR'), asyncRo
   await notify(pickup.customerId, 'Collector accepted', `A collector accepted ${pickup.pickupCode}.`, pickup.id)
   send(res, 200, 'Request accepted')
 }))
-app.get('/api/collector/history', auth, allow('COLLECTOR'), asyncRoute(async (req, res) => send(res, 200, 'History loaded', { pickups: await prisma.pickup.findMany({ where: { collectorId: req.user.id, status: { in: ['COLLECTED', 'CANCELLED', 'REJECTED'] } }, orderBy: { updatedAt: 'desc' } }) })))
+app.get('/api/collector/history', auth, allow('COLLECTOR'), asyncRoute(async (req, res) => send(res, 200, 'History loaded', { pickups: (await prisma.pickup.findMany({ where: { collectorId: req.user.id, status: { in: ['COLLECTED', 'CANCELLED', 'REJECTED'] } }, orderBy: { updatedAt: 'desc' } })).map(normalizePickup) })))
 app.patch('/api/collector/availability', auth, allow('COLLECTOR'), asyncRoute(async (req, res) => {
   const { available } = z.object({ available: z.boolean() }).parse(req.body)
   const user = await prisma.user.update({ where: { id: req.user.id }, data: { available } })
@@ -448,7 +455,7 @@ app.get('/api/complaints', auth, asyncRoute(async (req, res) => send(res, 200, '
 
 // Phase 3: collection hubs, batches and end-to-end chain of custody.
 const hubWhere = (req) => req.user.role === 'ADMIN' ? {} : { hubId: req.user.id }
-const batchInclude = { hub: { select: { id: true, name: true } }, recycler: { select: { id: true, name: true } }, pickups: { include: { pickup: { select: { id: true, pickupCode: true, category: true, actualWeight: true, customerId: true, collectorId: true } } } }, events: { include: { actor: { select: { name: true, role: true } } }, orderBy: { createdAt: 'asc' } }, stages: { orderBy: { createdAt: 'asc' } }, certificate: true }
+const batchInclude = { hub: { select: { id: true, name: true } }, recycler: { select: { id: true, name: true } }, pickups: { include: { pickup: { select: { id: true, pickupCode: true, category: true, actualWeight: true, customerId: true, collectorId: true, imagesJson: true } } } }, events: { include: { actor: { select: { name: true, role: true } } }, orderBy: { createdAt: 'asc' } }, stages: { orderBy: { createdAt: 'asc' } }, certificate: true }
 app.get('/api/hub/dashboard', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
   const where = hubWhere(req)
   const [batches, collected, total] = await Promise.all([
@@ -456,11 +463,11 @@ app.get('/api/hub/dashboard', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(as
     prisma.pickup.count({ where: { status: 'COLLECTED', batchPickups: { none: {} } } }),
     prisma.batch.aggregate({ where, _sum: { totalWeight: true } })
   ])
-  send(res, 200, 'Hub dashboard loaded', { stats: { batches: batches.length, collected, totalWeight: total._sum.totalWeight || 0 }, batches })
+  send(res, 200, 'Hub dashboard loaded', { stats: { batches: batches.length, collected, totalWeight: total._sum.totalWeight || 0 }, batches: batches.map(normalizeBatch) })
 }))
 app.get('/api/hub/collections', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
   const pickups = await prisma.pickup.findMany({ where: { status: 'COLLECTED', batchPickups: { none: {} } }, include: { customer: { select: { name: true } }, collector: { select: { name: true } } }, orderBy: { updatedAt: 'desc' } })
-  send(res, 200, 'Hub collections loaded', { pickups })
+  send(res, 200, 'Hub collections loaded', { pickups: pickups.map(normalizePickup) })
 }))
 app.post('/api/hub/collections/:id/verify', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
   const data = z.object({ actualWeight: z.coerce.number().positive().max(100000), note: z.string().max(500).optional() }).parse(req.body)
@@ -471,11 +478,11 @@ app.post('/api/hub/collections/:id/verify', auth, allow('HUB_MANAGER', 'ADMIN'),
   await audit(req.user.id, 'VERIFY_COLLECTION', 'PICKUP', pickup.id, { actualWeight: data.actualWeight })
   send(res, 200, 'Collection verified', { pickup: updated })
 }))
-app.get('/api/hub/batches', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Hub batches loaded', { batches: await prisma.batch.findMany({ where: hubWhere(req), include: batchInclude, orderBy: { createdAt: 'desc' } }) })))
+app.get('/api/hub/batches', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Hub batches loaded', { batches: (await prisma.batch.findMany({ where: hubWhere(req), include: batchInclude, orderBy: { createdAt: 'desc' } })).map(normalizeBatch) })))
 app.get('/api/hub/batches/:id', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
   const batch = await prisma.batch.findFirst({ where: { id: req.params.id, ...hubWhere(req) }, include: batchInclude })
   if (!batch) return send(res, 404, 'Batch not found')
-  send(res, 200, 'Hub batch loaded', { batch })
+  send(res, 200, 'Hub batch loaded', { batch: normalizeBatch(batch) })
 }))
 app.get('/api/hub/recyclers', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (_req, res) => send(res, 200, 'Recyclers loaded', { users: await prisma.user.findMany({ where: { role: 'RECYCLER', status: 'ACTIVE' }, select: { id: true, name: true, email: true, verified: true, rating: true }, orderBy: { name: 'asc' } }) })))
 app.post('/api/hub/batches', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
@@ -492,7 +499,7 @@ app.post('/api/hub/batches', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(asy
   })
   await chain({ entityType: 'BATCH', entityId: batch.id, batchId: batch.id, actorId: req.user.id, fromRole: 'HUB_MANAGER', toRole: 'HUB', status: 'CREATED', note: `Batch ${batch.batchCode} created` })
   await audit(req.user.id, 'CREATE_BATCH', 'BATCH', batch.id, { pickupCount: pickups.length })
-  send(res, 201, 'Batch created', { batch: await prisma.batch.findUnique({ where: { id: batch.id }, include: batchInclude }) })
+  send(res, 201, 'Batch created', { batch: normalizeBatch(await prisma.batch.findUnique({ where: { id: batch.id }, include: batchInclude })) })
 }))
 app.post('/api/hub/batches/:id/pickups', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
   const { pickupIds } = z.object({ pickupIds: z.array(z.string()).min(1) }).parse(req.body)
@@ -508,7 +515,7 @@ app.post('/api/hub/batches/:id/pickups', auth, allow('HUB_MANAGER', 'ADMIN'), as
 }))
 app.get('/api/hub/inventory', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
   const batches = await prisma.batch.findMany({ where: { ...hubWhere(req), status: { not: 'COMPLETED' } }, include: batchInclude, orderBy: { updatedAt: 'desc' } })
-  send(res, 200, 'Hub inventory loaded', { batches })
+  send(res, 200, 'Hub inventory loaded', { batches: batches.map(normalizeBatch) })
 }))
 app.get('/api/hub/analytics', auth, allow('HUB_MANAGER', 'ADMIN'), asyncRoute(async (req, res) => {
   const where = hubWhere(req); const batches = await prisma.batch.findMany({ where, select: { status: true, totalWeight: true, categoriesJson: true, createdAt: true } })
@@ -543,13 +550,13 @@ app.post('/api/hub/batches/:id/send', auth, allow('HUB_MANAGER', 'ADMIN'), async
 app.get('/api/recycler/dashboard', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => {
   const where = req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }
   const [batches, total] = await Promise.all([prisma.batch.findMany({ where, include: batchInclude, orderBy: { updatedAt: 'desc' }, take: 10 }), prisma.batch.aggregate({ where, _sum: { totalWeight: true } })])
-  send(res, 200, 'Recycler dashboard loaded', { stats: { totalWeight: total._sum.totalWeight || 0, totalBatches: batches.length, processing: batches.filter((b) => b.status === 'PROCESSING').length }, batches })
+  send(res, 200, 'Recycler dashboard loaded', { stats: { totalWeight: total._sum.totalWeight || 0, totalBatches: batches.length, processing: batches.filter((b) => b.status === 'PROCESSING').length }, batches: batches.map(normalizeBatch) })
 }))
-app.get('/api/recycler/batches', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Recycler batches loaded', { batches: await prisma.batch.findMany({ where: req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }, include: batchInclude, orderBy: { updatedAt: 'desc' } }) })))
+app.get('/api/recycler/batches', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Recycler batches loaded', { batches: (await prisma.batch.findMany({ where: req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }, include: batchInclude, orderBy: { updatedAt: 'desc' } })).map(normalizeBatch) })))
 app.get('/api/recycler/batches/:id', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => {
   const batch = await prisma.batch.findFirst({ where: { id: req.params.id, ...(req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }) }, include: batchInclude })
   if (!batch) return send(res, 404, 'Batch not found')
-  send(res, 200, 'Batch loaded', { batch })
+  send(res, 200, 'Batch loaded', { batch: normalizeBatch(batch) })
 }))
 app.post('/api/recycler/batches/:id/accept', auth, allow('RECYCLER'), asyncRoute(async (req, res) => {
   const batch = await prisma.batch.findFirst({ where: { id: req.params.id, recyclerId: req.user.id, status: 'SENT_TO_RECYCLER' } }); if (!batch) return send(res, 404, 'Batch not available')
@@ -575,8 +582,8 @@ app.post('/api/recycler/batches/:id/processing', auth, allow('RECYCLER'), asyncR
   await audit(req.user.id, 'UPDATE_PROCESSING_STAGE', 'BATCH', batch.id, { stage: data.stage, status: data.status })
   send(res, 200, 'Processing stage updated', { stage, batch: updated })
 }))
-app.get('/api/recycler/processing', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Processing loaded', { batches: await prisma.batch.findMany({ where: { ...(req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }), status: 'PROCESSING' }, include: batchInclude }) })))
-app.get('/api/recycler/history', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Recycler history loaded', { batches: await prisma.batch.findMany({ where: { ...(req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }), status: { in: ['RECYCLED', 'COMPLETED'] } }, include: batchInclude, orderBy: { completedAt: 'desc' } }) })))
+app.get('/api/recycler/processing', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Processing loaded', { batches: (await prisma.batch.findMany({ where: { ...(req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }), status: 'PROCESSING' }, include: batchInclude })).map(normalizeBatch) })))
+app.get('/api/recycler/history', auth, allow('RECYCLER', 'ADMIN'), asyncRoute(async (req, res) => send(res, 200, 'Recycler history loaded', { batches: (await prisma.batch.findMany({ where: { ...(req.user.role === 'ADMIN' ? {} : { recyclerId: req.user.id }), status: { in: ['RECYCLED', 'COMPLETED'] } }, include: batchInclude, orderBy: { completedAt: 'desc' } })).map(normalizeBatch) })))
 app.post('/api/recycler/batches/:id/recycle', auth, allow('RECYCLER'), asyncRoute(async (req, res) => {
   const data = z.object({ recoveredMaterial: z.record(z.string(), z.number().nonnegative()).optional() }).parse(req.body)
   const batch = await prisma.batch.findFirst({ where: { id: req.params.id, recyclerId: req.user.id, status: 'PROCESSING' }, include: { pickups: { include: { pickup: { include: { customer: true } } } } } })
@@ -634,8 +641,8 @@ const adminRoleList = (role) => asyncRoute(async (_req, res) => send(res, 200, `
 app.get('/api/admin/collectors', auth, allow('ADMIN'), adminRoleList('COLLECTOR'))
 app.get('/api/admin/recyclers', auth, allow('ADMIN'), adminRoleList('RECYCLER'))
 app.get('/api/admin/hubs', auth, allow('ADMIN'), adminRoleList('HUB_MANAGER'))
-app.get('/api/admin/pickups', auth, allow('ADMIN'), asyncRoute(async (_req, res) => send(res, 200, 'Pickups loaded', { pickups: await prisma.pickup.findMany({ include: { customer: { select: { name: true } }, collector: { select: { name: true } }, batchPickups: { include: { batch: { select: { batchCode: true, status: true } } } } }, orderBy: { createdAt: 'desc' } }) })))
-app.get('/api/admin/batches', auth, allow('ADMIN'), asyncRoute(async (_req, res) => send(res, 200, 'Batches loaded', { batches: await prisma.batch.findMany({ include: batchInclude, orderBy: { createdAt: 'desc' } }) })))
+app.get('/api/admin/pickups', auth, allow('ADMIN'), asyncRoute(async (_req, res) => send(res, 200, 'Pickups loaded', { pickups: (await prisma.pickup.findMany({ include: { customer: { select: { name: true } }, collector: { select: { name: true } }, batchPickups: { include: { batch: { select: { batchCode: true, status: true } } } } }, orderBy: { createdAt: 'desc' } })).map(normalizePickup) })))
+app.get('/api/admin/batches', auth, allow('ADMIN'), asyncRoute(async (_req, res) => send(res, 200, 'Batches loaded', { batches: (await prisma.batch.findMany({ include: batchInclude, orderBy: { createdAt: 'desc' } })).map(normalizeBatch) })))
 app.get('/api/admin/complaints', auth, allow('ADMIN'), asyncRoute(async (_req, res) => send(res, 200, 'Complaints loaded', { complaints: await prisma.complaint.findMany({ include: { customer: { select: { name: true, email: true } }, collector: { select: { name: true } }, pickup: { select: { pickupCode: true } } }, orderBy: { updatedAt: 'desc' } }) })))
 app.patch('/api/admin/complaints/:id', auth, allow('ADMIN'), asyncRoute(async (req, res) => {
   const { status } = z.object({ status: z.enum(['OPEN', 'IN_REVIEW', 'RESOLVED', 'CLOSED']) }).parse(req.body)
