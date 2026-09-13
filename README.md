@@ -3,6 +3,66 @@
 > A traceable recycling platform connecting customers, collectors, collection
 > hubs, recyclers, and administrators.
 
+[![Live frontend](https://img.shields.io/badge/live-vercel-000000?logo=vercel&logoColor=white)](https://kabadiwala-26.vercel.app)
+[![API](https://img.shields.io/badge/API-Render-46e3b7?logo=render&logoColor=111111)](https://kabadivala-api.onrender.com/api/health)
+[![Stack](https://img.shields.io/badge/stack-React%20%7C%20Express%20%7C%20PostgreSQL-2f7d55)](#architecture)
+[![License](https://img.shields.io/badge/license-academic%20project-7c5cff)](#)
+
+<p align="center">
+  <strong>From pickup request to recycling certificate — one visible, responsible journey.</strong>
+</p>
+
+<p align="center">
+  <a href="https://kabadiwala-26.vercel.app">Open app</a> ·
+  <a href="https://kabadiwala-26.vercel.app/faq">Read FAQ</a> ·
+  <a href="https://kabadiwala-26.vercel.app/contact">Contact support</a>
+</p>
+
+## Dashboard
+
+| Area | What is included |
+| --- | --- |
+| **Customer** | Book pickups, upload item photos, review AI suggestions, track status, earn points, review collectors, download certificates |
+| **Collector** | View matched requests, accept work, update pickup status, capture proof and actual weight, manage availability |
+| **Hub manager** | Verify collections, manage inventory, create batches, use QR handoffs and preserve custody history |
+| **Recycler** | Accept batches, record processing stages and recovered materials, complete recycling |
+| **Admin** | Manage users, open full user details, verification, pickups, hubs, recyclers, complaints, notifications, analytics and audit logs |
+| **Public experience** | Landing page, How it works, Impact, redesigned FAQ with Gemini assistant, Contact, Privacy Policy and Terms of Service |
+
+## Quick start
+
+```bash
+git clone https://github.com/RajenderMohanVerma/Kabadiwala.git
+cd Kabadiwala
+npm install
+npm --prefix server install
+npm --prefix client install
+```
+
+Create `server/.env` from `server/.env.example`, then start the API and frontend
+in separate terminals:
+
+```bash
+npm run server
+npm run client
+```
+
+Open [http://localhost:5173](http://localhost:5173).
+
+<details>
+<summary><strong>Public pages</strong></summary>
+
+| Page | Route |
+| --- | --- |
+| How it works | `/how-it-works` |
+| Our impact | `/impact` |
+| FAQ + AI assistant | `/faq` |
+| Contact support | `/contact` |
+| Privacy policy | `/privacy-policy` |
+| Terms of service | `/terms-of-service` |
+
+</details>
+
 Kabadivala turns a pickup request into a visible recycling journey: customers
 can schedule collections and earn eco points, collectors can manage assigned
 requests, hubs can verify weights and create batches, recyclers can record
@@ -31,6 +91,12 @@ processing, and administrators can monitor the complete chain.
 - Responsive React interface with public landing pages, role-based navigation,
   Framer Motion-ready UI, Lucide icons, charts, loading/error/empty states,
   and PWA support.
+- Dedicated support experience with animated FAQ cards, predefined answers,
+  Gemini-powered project-aware questions, role-based Contact form, SMTP email
+  delivery, and 24/7 support messaging.
+- Professional legal pages for Privacy Policy and Terms of Service with
+  responsive layouts, animated hero cards, section navigation, and links back
+  to Contact support.
 
 ## Architecture
 
@@ -318,6 +384,18 @@ The API uses the response shape:
 }
 ```
 
+### Public support endpoints
+
+```text
+POST   /api/ai/faq
+POST   /api/contact
+```
+
+The FAQ assistant is constrained to Kabadivala product context and returns
+clear provider errors when the Gemini key, model, quota, or network is
+misconfigured. Contact messages are validated server-side and delivered to the
+configured support inbox through SMTP; credentials never enter the frontend.
+
 ## Production deployment
 
 ### Backend on Render
@@ -357,6 +435,46 @@ VITE_API_URL=https://your-render-service.onrender.com/api
 
 Because `VITE_` values are bundled into browser code, this is configuration,
 not a secret. Never place private credentials in a `VITE_` variable.
+
+## Support configuration
+
+The Contact page accepts customers, collectors, hub managers, recyclers,
+admins, and other visitors. Configure these backend variables on Render:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-account@gmail.com
+SMTP_PASS=your-gmail-app-password
+SMTP_FROM=your-smtp-account@gmail.com
+```
+
+For Gmail, enable 2-Step Verification and create a 16-character App Password.
+Use that App Password in `SMTP_PASS`; never use or commit the normal Gmail
+password. Support messages are sent to `rajendramohan7800@gmail.com`.
+
+## Production checklist
+
+- Set `CLIENT_ORIGIN` to the deployed frontend URL.
+- Set `VITE_API_URL` on Vercel to the Render API `/api` URL.
+- Run migrations before seed data with `npx prisma migrate deploy`.
+- Keep `GEMINI_API_KEY`, `JWT_SECRET`, `DATABASE_URL`, and SMTP credentials
+  server-side only.
+- Confirm Render uses `app.set('trust proxy', 1)` before rate-limited routes.
+- Test `/api/health`, login, FAQ, Contact, and one complete pickup flow after
+  every deployment.
+
+## Validation
+
+```bash
+node --check server/server.js
+npm --prefix client run build
+npx prisma validate --schema server/prisma/schema.prisma
+```
+
+The frontend build currently reports non-blocking Zod annotation and main
+bundle-size warnings. They do not prevent deployment.
 
 ## Validation
 

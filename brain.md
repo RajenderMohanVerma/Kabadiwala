@@ -7,7 +7,8 @@ changes.
 
 ## Current status
 
-**Phase:** Production-oriented stabilization after the PostgreSQL migration.
+**Phase:** Production-oriented stabilization after the PostgreSQL migration,
+with the public support and legal experience completed.
 
 **Validated:** React/Vite production build, Express syntax, Prisma PostgreSQL
 schema/migration setup, seeded demo accounts, authenticated role workflows,
@@ -70,7 +71,8 @@ The five supported roles are:
 - `client/src/services/api.js` configures Axios and the production API
   fallback.
 - `client/src/styles.css` contains the responsive design system, animation,
-  scan card, image gallery, focus states, and reduced-motion behavior.
+  scan card, image gallery, focus states, reduced-motion behavior, redesigned
+  Contact page, and legal-page components.
 
 ### Backend
 
@@ -97,6 +99,54 @@ The API currently provides:
 - PDF certificate generation and ownership-aware downloads.
 - Persistent notifications, reviews, complaints, points, batches, processing
   stages, custody events, audit logs, bulk pickups, and campus drives.
+
+## Support, contact, and legal pages
+
+The public React route tree includes:
+
+| Route | Behavior |
+| --- | --- |
+| `/faq` | Animated FAQ cards, predefined Kabadivala answers, and a Gemini assistant |
+| `/contact` | Role-aware support form with validation, animated contact channels, 24/7 support copy, and SMTP delivery |
+| `/privacy-policy` | Structured privacy policy with sticky section navigation |
+| `/terms-of-service` | Structured usage terms with fair-use guidance |
+
+The FAQ assistant calls `POST /api/ai/faq`. Its server prompt is grounded in
+Kabadivala workflows, roles, materials, benefits, limitations, eco points,
+certificates, and admin operations. It must not invent prices, private account
+details, guarantees, or unsupported policies.
+
+The Contact form calls `POST /api/contact`, validates name, email, role,
+subject, and a 3–2000 character message, then sends an email to
+`rajendramohan7800@gmail.com` using Nodemailer. SMTP values remain on the
+backend. Footer links and legal-page support notices use React Router and
+open the dedicated Contact page.
+
+The Contact visual system includes a gradient hero, animated support orbit,
+floating trust cards, role cards, support-hours channel, message counter,
+promise section, hover transitions, and mobile breakpoints. Legal pages reuse
+the same visual language with animated hero cards, numbered sections,
+responsive table-of-contents links, and direct Contact navigation.
+
+## Admin user details
+
+The admin Users page includes a **View details** action backed by
+`GET /api/admin/users/:id`. The response excludes `passwordHash` and includes
+safe profile, contact, verification, operational, timestamp, and activity
+count information. The detail panel can be closed without leaving the Users
+page.
+
+## Render deployment fixes
+
+- `app.set('trust proxy', 1)` is configured before rate-limit middleware so
+  Render's `X-Forwarded-For` header is handled correctly.
+- The Prisma seed script runs `prisma migrate deploy` before seeding, reducing
+  schema drift during hosted builds.
+- The repair migration
+  `20260913170000_repair_profile_fields` uses PostgreSQL-compatible
+  `ADD COLUMN IF NOT EXISTS` for profile fields.
+- Contact route registration remains below the `asyncRoute` declaration to
+  avoid startup-time `ReferenceError` failures.
 
 ## Pickup workflow
 
@@ -241,6 +291,8 @@ warnings and a large main chunk. These are known warnings, not build failures.
 - The frontend primary bundle is larger than the ideal code-splitting target.
 - AI classification remains probabilistic and must not be treated as an
   authoritative material or valuation decision.
+- SMTP delivery and Gemini availability depend on valid Render environment
+  variables and third-party provider quotas.
 
 ## Safe next improvements
 
@@ -261,5 +313,5 @@ warnings and a large main chunk. These are known warnings, not build failures.
 - Validate changed backend syntax and the frontend build before pushing.
 - Update this file and `README.md` when architecture or deployment behavior
   changes.
-- Commit and push completed changes unless the user explicitly requests local
-  changes only.
+- Keep public copy, legal pages, support links, and environment-variable
+  documentation synchronized when those surfaces change.
