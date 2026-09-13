@@ -29,6 +29,14 @@ const reviewQuestions = [
   ['behaviour', 'Collector behaviour'],
   ['itemHandling', 'Careful item handling']
 ]
+export const faqItems = [
+  ['Is the AI scan mandatory?', 'No. The AI scan is a helpful starting point. You can skip it and fill in all item details manually — category, condition, weight and more.'],
+  ['How are collectors verified?', 'Every collector goes through identity verification, background checks and category training before being listed. They are rated after every pickup.'],
+  ['What items can I recycle?', 'We accept e-waste, metals, paper, cardboard, plastic, glass and textiles. Hazardous materials like batteries and chemicals require special handling — contact support.'],
+  ['How long does a pickup take?', 'Most pickups are matched within 30 minutes. The collector arrives at your chosen time slot. The whole process from booking to collection takes under 24 hours for most requests.'],
+  ['What is the QR handoff token?', 'A one-time secure token generated for each pickup. The collector scans it at your door to confirm identity and start the official handoff — no cash, no confusion.'],
+  ['Can I cancel a pickup?', 'Yes. You can cancel any pickup that has not yet been accepted by a collector. Once accepted, please contact support for assistance.'],
+]
 function FeedbackSummary({ feedback = {} }) {
   return <div className="feedback-summary">{reviewQuestions.map(([key, label]) => <div key={key}><span>{label}</span><b>{feedback[key] ? `${'★'.repeat(feedback[key])}${'☆'.repeat(5 - feedback[key])}` : '—'}</b></div>)}</div>
 }
@@ -322,15 +330,6 @@ function HowItWorksPage() {
     },
   ]
 
-  const faqs = [
-    ['Is the AI scan mandatory?', 'No. The AI scan is a helpful starting point. You can skip it and fill in all item details manually — category, condition, weight and more.'],
-    ['How are collectors verified?', 'Every collector goes through identity verification, background checks and category training before being listed. They are rated after every pickup.'],
-    ['What items can I recycle?', 'We accept e-waste, metals, paper, cardboard, plastic, glass and textiles. Hazardous materials like batteries and chemicals require special handling — contact support.'],
-    ['How long does a pickup take?', 'Most pickups are matched within 30 minutes. The collector arrives at your chosen time slot. The whole process from booking to collection takes under 24 hours for most requests.'],
-    ['What is the QR handoff token?', 'A one-time secure token generated for each pickup. The collector scans it at your door to confirm identity and start the official handoff — no cash, no confusion.'],
-    ['Can I cancel a pickup?', 'Yes. You can cancel any pickup that has not yet been accepted by a collector. Once accepted, please contact support for assistance.'],
-  ]
-
   return (
     <main>
       {/* Hero */}
@@ -412,7 +411,7 @@ function HowItWorksPage() {
             <h2>Everything you need to know.</h2>
           </div>
           <div className="piw-faq">
-            {faqs.map(([q, a], i) => (
+            {faqItems.map(([q, a], i) => (
               <motion.details className="lp-faq__item" key={q} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}>
                 <summary>{q}</summary>
                 <p>{a}</p>
@@ -1626,6 +1625,63 @@ export function CollectorRatingsPage() {
         </State>
       </Panel>
     </div>
+  )
+}
+
+export function FaqPage() {
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const askQuestion = async (event) => {
+    event.preventDefault()
+    const trimmed = question.trim()
+    if (!trimmed) return
+    setBusy(true)
+    setError('')
+    try {
+      const response = await api.post('/ai/faq', { question: trimmed })
+      setAnswer(response.data.data.answer)
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || 'Unable to get an answer right now.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <main className="faq-page">
+      <section className="faq-page__hero">
+        <div className="container">
+          <span className="eyebrow">Support & guidance</span>
+          <h1>Questions? We have answers<span>.</span></h1>
+          <p>Browse common questions or ask our Kabadivala assistant about pickups, recycling and your account.</p>
+        </div>
+      </section>
+      <section className="section">
+        <div className="container faq-page__grid">
+          <div>
+            <div className="lp-section-head faq-page__heading">
+              <span className="eyebrow">Common questions</span>
+              <h2>Quick answers for getting started.</h2>
+            </div>
+            <div className="lp-faq">
+              {faqItems.map(([q, a]) => <details className="lp-faq__item" key={q}><summary>{q}</summary><p>{a}</p></details>)}
+            </div>
+          </div>
+          <Panel title="Ask Kabadivala">
+            <form className="faq-chat-form" onSubmit={askQuestion}>
+              <label className="field"><span>Your question</span><textarea value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={500} rows={5} placeholder="How do I book a pickup?" /></label>
+              <button className="button primary" disabled={busy || !question.trim()}><MessageSquare size={15} /> {busy ? 'Thinking…' : 'Ask question'}</button>
+            </form>
+            {error && <p className="form-error mt-12">{error}</p>}
+            {answer && <div className="faq-chat-answer"><b>Answer</b><p>{answer}</p></div>}
+            <small className="faq-chat-note">AI answers are focused on Kabadivala services. For account-specific help, contact support.</small>
+          </Panel>
+        </div>
+      </section>
+    </main>
   )
 }
 

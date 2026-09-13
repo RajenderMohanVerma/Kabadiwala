@@ -256,6 +256,36 @@ const providerErrorMessage = (body) => {
     return body
   }
 }
+const faqQuestionSchema = z.object({ question: z.string().trim().min(3).max(500) })
+const faqChat = async (req, res) => {
+  if (!process.env.GEMINI_API_KEY) return send(res, 503, 'AI FAQ chat is not configured')
+  const { question } = faqQuestionSchema.parse(req.body)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000)
+  try {
+    const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').split(',')[0].trim().replace(/^models\//, '')
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+      method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: `You are the helpful Kabadivala recycling support assistant. Answer the user's question in plain, concise language using only information about Kabadivala pickups, recyclable materials, collectors, accounts, eco points and certificates. If the question is unrelated or requires private account access, say that you cannot help and suggest contacting support. Do not invent prices, policies or personal data.\n\nUser question: ${question}` }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 300 } })
+    })
+    if (!response.ok) {
+      const body = await response.text()
+      console.error(`Gemini FAQ failed with status ${response.status}: ${providerErrorMessage(body).slice(0, 300)}`)
+      if ([401, 403].includes(response.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
+      if (response.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
+      return send(res, 502, 'Unable to get an answer from the AI provider')
+    }
+    const payload = await response.json()
+    const answer = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text?.trim()
+    if (!answer) return send(res, 502, 'The AI provider returned an invalid response')
+    return send(res, 200, 'FAQ answer generated', { answer })
+  } catch (error) {
+    if (error.name === 'AbortError') return send(res, 504, 'The AI provider timed out')
+    console.error('Gemini FAQ request failed', error)
+    return send(res, 502, 'Unable to contact the AI provider')
+  } finally { clearTimeout(timeout) }
+}
+app.post('/api/ai/faq', rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: true }), asyncRoute(faqChat))
 const identifyItem = async (req, res) => {
   if (!process.env.GEMINI_API_KEY) return send(res, 503, 'AI item identification is not configured')
   if (!req.file) return send(res, 400, 'An image is required')

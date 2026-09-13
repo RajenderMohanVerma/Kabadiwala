@@ -128,18 +128,10 @@ export function PublicLayout() {
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
-  // FAQ link — go to how-it-works page and scroll to faq section
   const handleFaqClick = (e) => {
     e.preventDefault()
     setMobileOpen(false)
-    if (location.pathname === '/how-it-works') {
-      document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })
-    } else {
-      navigate('/how-it-works')
-      setTimeout(() => {
-        document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })
-      }, 400)
-    }
+    navigate('/faq')
   }
 
   return (
@@ -158,7 +150,7 @@ export function PublicLayout() {
           <nav className="pub-nav">
             <Link className={`pub-nav__link${location.pathname === '/how-it-works' ? ' active' : ''}`} to="/how-it-works">How it works</Link>
             <Link className={`pub-nav__link${location.pathname === '/impact' ? ' active' : ''}`} to="/impact">Our impact</Link>
-            <button className="pub-nav__link pub-nav__link--btn" onClick={handleFaqClick}>FAQ</button>
+            <button className={`pub-nav__link pub-nav__link--btn${location.pathname === '/faq' ? ' active' : ''}`} onClick={handleFaqClick}>FAQ</button>
             <div className="pub-nav__divider" />
             <Link className="pub-nav__signin" to="/login">Sign in</Link>
             <Link className="button primary pub-nav__cta" to="/register">Get started <ArrowRight size={15} /></Link>
