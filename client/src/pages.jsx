@@ -11,7 +11,18 @@ import { EmptyState, ErrorState, LoadingState } from './components/Feedback'
 
 const statusLabels = (value) => value?.toLowerCase().replaceAll('_', ' ')
 const assetUrl = (value) => value?.startsWith('http') ? value : `${(import.meta.env.VITE_API_URL || (import.meta.env.PROD ? 'https://kabadivala-api.onrender.com/api' : 'http://localhost:5000/api')).replace(/\/api$/, '')}${value}`
-function PickupImages({ images = [], label = 'Item photos' }) { if (!images.length) return null; return <div className="pickup-images"><h3>{label}</h3><div>{images.map((image) => <a href={assetUrl(image)} target="_blank" rel="noreferrer" key={image}><img src={assetUrl(image)} alt="Uploaded pickup item" loading="lazy" /></a>)}</div></div> }
+const pickupImages = (pickup) => {
+  if (Array.isArray(pickup?.images)) return pickup.images
+  if (typeof pickup?.imagesJson === 'string') {
+    try { return JSON.parse(pickup.imagesJson) } catch { return [] }
+  }
+  return []
+}
+function PickupImages({ pickup, label = 'Customer uploaded item' }) {
+  const images = pickupImages(pickup)
+  if (!images.length) return null
+  return <div className="pickup-images"><h3>{label}</h3><div>{images.map((image) => <a href={assetUrl(image)} target="_blank" rel="noreferrer" key={image}><img src={assetUrl(image)} alt="Customer uploaded item for analysis" loading="lazy" /></a>)}</div></div>
+}
 const useLoad = (request, deps = []) => {
   const [state, setState] = useState({ loading: true, error: '', data: null })
   useEffect(() => { let active = true; setState({ loading: true, error: '', data: null }); request().then(({ data }) => active && setState({ loading: false, error: '', data: data.data })).catch((e) => active && setState({ loading: false, error: e.response?.data?.message || 'Unable to load this section.', data: null })); return () => { active = false } }, deps)
@@ -999,7 +1010,7 @@ export function PickupDetailPage() {
                     <div className="detail-info-item"><Package size={15} /><div><small>Item details</small><b>{pickup.itemDetails}</b></div></div>
                     <div className="detail-info-item"><Weight size={15} /><div><small>Est. weight</small><b>{pickup.estimatedWeight || '—'} kg</b></div></div>
                   </div>
-                  <PickupImages images={pickup.images} />
+                  <PickupImages pickup={pickup} />
                   {message && <p className={msgType === 'success' ? 'success-text mt-8' : 'form-error mt-8'}>{message}</p>}
                   <div className="form-actions mt-16">
                     {['REQUESTED', 'REJECTED'].includes(pickup.status) && (
@@ -1268,7 +1279,7 @@ function CollectorRequestCard({ pickup }) {
         <b>{pickup.pickupCode}</b>
         <small><MapPin size={11} /> {pickup.address || pickup.customer?.address || 'Address on file'}</small>
         <small><Package size={11} /> {pickup.category}</small>
-        <PickupImages images={pickup.images} label="Customer item photos" />
+        <PickupImages pickup={pickup} label="Customer uploaded item" />
       </div>
       <div className="creq-card__actions">
         <PickupStatusBadge status={pickup.status} />
@@ -1340,7 +1351,7 @@ export function CollectorDetailPage() {
                     <div className="detail-info-item"><Package size={15} /><div><small>Items</small><b>{pickup.itemDetails}</b></div></div>
                     <div className="detail-info-item"><Weight size={15} /><div><small>Est. weight</small><b>{pickup.estimatedWeight || '—'} kg</b></div></div>
                   </div>
-                  <PickupImages images={pickup.images} label="Customer item photos" />
+                  <PickupImages pickup={pickup} label="Customer uploaded item" />
                   {message && <p className={`mt-12 ${msgType === 'success' ? 'success-text' : 'form-error'}`}>{message}</p>}
                   <div className="form-actions mt-16">
                     {nextStatus[pickup.status] && (
