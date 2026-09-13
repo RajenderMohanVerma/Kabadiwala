@@ -1509,6 +1509,7 @@ export function CollectorAvailabilityPage() {
 
 export function CollectorRatingsPage() {
   const state = useLoad(() => api.get('/reviews'))
+  const [showAllReviews, setShowAllReviews] = useState(false)
   const avg = state.data?.reviews?.length
     ? (state.data.reviews.reduce((s, r) => s + r.rating, 0) / state.data.reviews.length).toFixed(1)
     : '—'
@@ -1525,14 +1526,17 @@ export function CollectorRatingsPage() {
       <Panel title="Customer reviews">
         <State state={state}>
           {state.data?.reviews?.length
-            ? state.data.reviews.map((r, i) => (
-              <motion.div className="review-card" key={r.id} {...stagger(i)}>
+            ? <>
+              {state.data.reviews.slice(0, showAllReviews ? state.data.reviews.length : 2).map((r, i) => (
+                <motion.div className="review-card" key={r.id} {...stagger(i)}>
                 <div className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
                 <FeedbackSummary feedback={r.feedback} />
                 <p className="review-comment">"{r.comment || 'Customer left no comment.'}"</p>
                 <small className="review-meta"><User size={12} /> {r.reviewer?.name || 'Customer'} <Package size={12} /> {r.pickup?.pickupCode || 'Completed pickup'}</small>
-              </motion.div>
-            ))
+                </motion.div>
+              ))}
+              {state.data.reviews.length > 2 && <button type="button" className="button secondary reviews-toggle" onClick={() => setShowAllReviews((visible) => !visible)}>{showAllReviews ? 'Show fewer reviews' : `More reviews (${state.data.reviews.length - 2})`}</button>}
+            </>
             : <EmptyState message="Ratings arrive after completed pickups." />}
         </State>
       </Panel>
