@@ -29,6 +29,8 @@ export default function NewPickupPage() {
   const [scan, setScan] = useState({ busy: false, message: '', result: null })
   const [error, setError] = useState('')
   const { register, handleSubmit, setValue, watch, formState: { isSubmitting, errors } } = useForm({
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: { quantity: 1, pickupDate: new Date().toISOString().slice(0, 10), pickupTime: '09:00', timePeriod: 'AM' }
   })
   const images = watch('images')
