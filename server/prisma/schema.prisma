@@ -171,6 +171,7 @@ model Review {
   subjectId  String
   rating     Int
   comment    String?
+  feedbackJson String @default("{}")
   createdAt  DateTime @default(now())
   pickup     Pickup   @relation(fields: [pickupId], references: [id], onDelete: Cascade)
   reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])

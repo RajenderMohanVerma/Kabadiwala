@@ -1,0 +1,1 @@
+ALTER TABLE "Review" ADD COLUMN "feedbackJson" TEXT NOT NULL DEFAULT '{}';

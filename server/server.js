@@ -97,7 +97,8 @@ const ownerInclude = {
   matches: { include: { collector: { select: { id: true, name: true, phone: true, rating: true, verified: true } } } },
   review: true
 }
-const normalizePickup = (pickup) => ({ ...pickup, images: JSON.parse(pickup.imagesJson || '[]'), imagesJson: undefined })
+const normalizeReview = (review) => ({ ...review, feedback: JSON.parse(review.feedbackJson || '{}'), feedbackJson: undefined })
+const normalizePickup = (pickup) => ({ ...pickup, images: JSON.parse(pickup.imagesJson || '[]'), imagesJson: undefined, review: pickup.review ? normalizeReview(pickup.review) : pickup.review })
 const normalizeCollectionProof = (pickup) => ({ ...pickup, collectionProof: JSON.parse(pickup.collectionProofJson || '[]'), collectionProofJson: undefined })
 const normalizeBatch = (batch) => ({
   ...batch,
@@ -433,17 +434,26 @@ app.patch('/api/collector/availability', auth, allow('COLLECTOR'), asyncRoute(as
 }))
 
 app.post('/api/pickups/:id/review', auth, allow('CUSTOMER'), asyncRoute(async (req, res) => {
-  const { rating, comment } = z.object({ rating: z.number().int().min(1).max(5), comment: z.string().max(1000).optional() }).parse(req.body)
+  const data = z.object({
+    rating: z.number().int().min(1).max(5),
+    comment: z.string().max(1000).optional(),
+    feedback: z.object({
+      experience: z.number().int().min(1).max(5),
+      punctuality: z.number().int().min(1).max(5),
+      behaviour: z.number().int().min(1).max(5),
+      itemHandling: z.number().int().min(1).max(5)
+    })
+  }).parse(req.body)
   const pickup = await prisma.pickup.findUnique({ where: { id: req.params.id } })
   if (!pickup || pickup.customerId !== req.user.id) return send(res, 404, 'Pickup not found')
   if (pickup.status !== 'COLLECTED' || !pickup.collectorId) return send(res, 409, 'Reviews are available after collection')
   if (await prisma.review.findUnique({ where: { pickupId: pickup.id } })) return send(res, 409, 'This pickup has already been reviewed')
-  const review = await prisma.review.create({ data: { pickupId: pickup.id, reviewerId: req.user.id, subjectId: pickup.collectorId, rating, comment } })
+  const review = await prisma.review.create({ data: { pickupId: pickup.id, reviewerId: req.user.id, subjectId: pickup.collectorId, rating: data.rating, comment: data.comment, feedbackJson: JSON.stringify(data.feedback) } })
   const collector = await prisma.user.findUnique({ where: { id: pickup.collectorId } })
   await prisma.user.update({ where: { id: pickup.collectorId }, data: { totalRatings: { increment: 1 }, rating: ((collector.rating * collector.totalRatings) + rating) / (collector.totalRatings + 1) } })
-  send(res, 201, 'Review submitted', { review })
+  send(res, 201, 'Review submitted', { review: normalizeReview(review) })
 }))
-app.get('/api/reviews', auth, asyncRoute(async (req, res) => send(res, 200, 'Reviews loaded', { reviews: await prisma.review.findMany({ where: req.user.role === 'COLLECTOR' ? { subjectId: req.user.id } : { reviewerId: req.user.id }, include: { pickup: { select: { pickupCode: true } }, reviewer: { select: { name: true } }, subject: { select: { name: true } } }, orderBy: { createdAt: 'desc' } }) })))
+app.get('/api/reviews', auth, asyncRoute(async (req, res) => send(res, 200, 'Reviews loaded', { reviews: (await prisma.review.findMany({ where: req.user.role === 'COLLECTOR' ? { subjectId: req.user.id } : { reviewerId: req.user.id }, include: { pickup: { select: { pickupCode: true } }, reviewer: { select: { name: true } }, subject: { select: { name: true } } }, orderBy: { createdAt: 'desc' } })).map(normalizeReview) })))
 app.post('/api/complaints', auth, allow('CUSTOMER'), asyncRoute(async (req, res) => {
   const data = z.object({ pickupId: z.string(), subject: z.string().min(3).max(100), description: z.string().min(5).max(2000) }).parse(req.body)
   const pickup = await prisma.pickup.findFirst({ where: { id: data.pickupId, customerId: req.user.id } })

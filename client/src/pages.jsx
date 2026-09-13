@@ -23,6 +23,15 @@ function PickupImages({ pickup, label = 'Customer uploaded item' }) {
   if (!images.length) return null
   return <div className="pickup-images"><h3>{label}</h3><div>{images.map((image) => <a href={assetUrl(image)} target="_blank" rel="noreferrer" key={image}><img src={assetUrl(image)} alt="Customer uploaded item for analysis" loading="lazy" /></a>)}</div></div>
 }
+const reviewQuestions = [
+  ['experience', 'Overall pickup experience'],
+  ['punctuality', 'Collector arrived on time'],
+  ['behaviour', 'Collector behaviour'],
+  ['itemHandling', 'Careful item handling']
+]
+function FeedbackSummary({ feedback = {} }) {
+  return <div className="feedback-summary">{reviewQuestions.map(([key, label]) => <div key={key}><span>{label}</span><b>{feedback[key] ? `${'★'.repeat(feedback[key])}${'☆'.repeat(5 - feedback[key])}` : '—'}</b></div>)}</div>
+}
 const useLoad = (request, deps = []) => {
   const [state, setState] = useState({ loading: true, error: '', data: null })
   useEffect(() => { let active = true; setState({ loading: true, error: '', data: null }); request().then(({ data }) => active && setState({ loading: false, error: '', data: data.data })).catch((e) => active && setState({ loading: false, error: e.response?.data?.message || 'Unable to load this section.', data: null })); return () => { active = false } }, deps)
@@ -974,6 +983,7 @@ export function PickupDetailPage() {
   const [qr, setQr] = useState('')
   const [busy, setBusy] = useState(false)
   const [rating, setRating] = useState(0)
+  const [feedback, setFeedback] = useState({ experience: 0, punctuality: 0, behaviour: 0, itemHandling: 0 })
   const [comment, setComment] = useState('')
   const [reviewBusy, setReviewBusy] = useState(false)
   const [reviewMessage, setReviewMessage] = useState('')
@@ -992,14 +1002,14 @@ export function PickupDetailPage() {
   }
   const submitReview = async (event) => {
     event.preventDefault()
-    if (!rating) {
-      setReviewMessage('Please select a rating before submitting.')
+    if (Object.values(feedback).some((value) => !value)) {
+      setReviewMessage('Please answer all four questions before submitting.')
       return
     }
     setReviewBusy(true)
     setReviewMessage('')
     try {
-      await api.post(`/pickups/${id}/review`, { rating, comment: comment.trim() || undefined })
+      await api.post(`/pickups/${id}/review`, { rating, feedback, comment: comment.trim() || undefined })
       setReviewMessage('Thanks! Your rating has been submitted.')
       window.location.reload()
     } catch (e) {
@@ -1056,25 +1066,13 @@ export function PickupDetailPage() {
                   <Panel title="Rate your collector">
                     <p className="text-muted">How was your pickup experience with {pickup.collector.name}?</p>
                     <form className="form-grid mt-12" onSubmit={submitReview}>
-                      <div className="rating-picker" role="group" aria-label="Collector rating">
-                        {[1, 2, 3, 4, 5].map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            className={`rating-star ${value <= rating ? 'rating-star--active' : ''}`}
-                            onClick={() => setRating(value)}
-                            aria-label={`${value} star${value === 1 ? '' : 's'}`}
-                          >
-                            <Star size={24} fill={value <= rating ? 'currentColor' : 'none'} />
-                          </button>
-                        ))}
-                      </div>
+                      {reviewQuestions.map(([key, label]) => <div className="feedback-question" key={key}><span>{label}</span><div className="rating-picker" role="group" aria-label={label}>{[1, 2, 3, 4, 5].map((value) => <button key={value} type="button" className={`rating-star ${value <= feedback[key] ? 'rating-star--active' : ''}`} onClick={() => { const next = { ...feedback, [key]: value }; setFeedback(next); setRating(next.experience) }} aria-label={`${value} star${value === 1 ? '' : 's'}`}><Star size={20} fill={value <= feedback[key] ? 'currentColor' : 'none'} /></button>)}</div></div>)}
                       <label className="field field-wide">
                         <span>Comment (optional)</span>
                         <textarea value={comment} onChange={(event) => setComment(event.target.value)} maxLength={1000} rows="3" placeholder="Share your pickup experience" />
                       </label>
                       {reviewMessage && <p className={reviewMessage.startsWith('Thanks') ? 'success-text' : 'form-error'}>{reviewMessage}</p>}
-                      <button className="button primary" disabled={reviewBusy || !rating}>
+                      <button className="button primary" disabled={reviewBusy || Object.values(feedback).some((value) => !value)}>
                         {reviewBusy ? 'Submitting…' : 'Submit rating'}
                       </button>
                     </form>
@@ -1083,6 +1081,7 @@ export function PickupDetailPage() {
                 {pickup.review && (
                   <Panel title="Your collector rating">
                     <div className="review-stars">{'★'.repeat(pickup.review.rating)}{'☆'.repeat(5 - pickup.review.rating)}</div>
+                    <FeedbackSummary feedback={pickup.review.feedback} />
                     <p className="review-comment">"{pickup.review.comment || 'No comment left.'}"</p>
                   </Panel>
                 )}
@@ -1200,6 +1199,7 @@ export function ReviewsPage() {
             ? state.data.reviews.map((r, i) => (
               <motion.div className="review-card" key={r.id} {...stagger(i)}>
                 <div className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
+                <FeedbackSummary feedback={r.feedback} />
                 <p className="review-comment">"{r.comment || 'No comment left.'}"</p>
                 <small className="review-meta"><Package size={12} /> {r.pickup?.pickupCode}</small>
               </motion.div>
