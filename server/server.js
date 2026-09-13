@@ -64,7 +64,7 @@ const registerSchema = z.object({
   email: z.string().trim().email().transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(7).max(20).optional(),
   password: z.string().min(8).max(100),
-  role: z.enum(['CUSTOMER', 'COLLECTOR']).default('CUSTOMER')
+  role: z.enum(['CUSTOMER', 'COLLECTOR', 'HUB_MANAGER', 'RECYCLER']).default('CUSTOMER')
 })
 const loginSchema = z.object({ email: z.string().email().transform((v) => v.toLowerCase()), password: z.string().min(1) })
 const pickupSchema = z.object({
@@ -164,14 +164,18 @@ app.post('/api/auth/register', asyncRoute(async (req, res) => {
   const input = registerSchema.parse(req.body)
   if (await prisma.user.findUnique({ where: { email: input.email } })) return send(res, 409, 'An account with this email already exists')
   const { password, ...profile } = input
-  const user = await prisma.user.create({ data: { ...profile, passwordHash: await bcrypt.hash(password, 12), verified: input.role === 'CUSTOMER' } })
+  const customer = input.role === 'CUSTOMER'
+  const user = await prisma.user.create({ data: { ...profile, passwordHash: await bcrypt.hash(password, 12), status: customer ? 'ACTIVE' : 'INACTIVE', verified: customer } })
+  if (!customer) return send(res, 201, 'Account created. Admin approval is required before you can sign in.', { user: publicUser(user), pendingApproval: true })
   return send(res, 201, 'Account created successfully', { token: signToken(user), user: publicUser(user) })
 }))
 
 app.post('/api/auth/login', asyncRoute(async (req, res) => {
   const input = loginSchema.parse(req.body)
   const user = await prisma.user.findUnique({ where: { email: input.email } })
-  if (!user || user.status !== 'ACTIVE' || !(await bcrypt.compare(input.password, user.passwordHash))) return send(res, 401, 'Invalid email or password')
+  if (!user || !(await bcrypt.compare(input.password, user.passwordHash))) return send(res, 401, 'Invalid email or password')
+  if (user.role !== 'CUSTOMER' && (user.status !== 'ACTIVE' || !user.verified)) return send(res, 403, 'Your account is awaiting admin approval.')
+  if (user.status !== 'ACTIVE') return send(res, 403, 'Your account is not active. Please contact support.')
   return send(res, 200, 'Signed in successfully', { token: signToken(user), user: publicUser(user) })
 }))
 app.get('/api/auth/me', auth, (req, res) => send(res, 200, 'Authenticated user', { user: publicUser(req.user) }))

@@ -751,7 +751,14 @@ export function RegisterPage() {
   const selectedRole = watch('role')
 
   const submit = async (values) => {
-    try { const result = await createAccount(values); navigate(result.data.user.role === 'COLLECTOR' ? '/collector/dashboard' : '/customer/dashboard') }
+    try {
+      const result = await createAccount(values)
+      if (result.data.pendingApproval) {
+        setError('Account created. Admin approval is required before you can sign in.')
+        return
+      }
+      navigate(rolePath(result.data.user.role))
+    }
     catch (e) { setError(e.response?.data?.message || 'Unable to create account. Try again.') }
   }
 
@@ -765,6 +772,16 @@ export function RegisterPage() {
       value: 'COLLECTOR', icon: <Truck size={22} />, title: 'Collector',
       desc: 'Receive pickup requests, build your rating and earn fairly.',
       perks: ['Flexible schedule', 'Fair earnings', 'Verified badge'],
+    },
+    {
+      value: 'HUB_MANAGER', icon: <Package size={22} />, title: 'Hub Manager',
+      desc: 'Verify collections and manage recycling batches.',
+      perks: ['Manage inventory', 'Batch handoffs', 'Traceable operations'],
+    },
+    {
+      value: 'RECYCLER', icon: <Recycle size={22} />, title: 'Recycler',
+      desc: 'Process batches and publish recycling certificates.',
+      perks: ['Process materials', 'Track stages', 'Issue certificates'],
     },
   ]
 

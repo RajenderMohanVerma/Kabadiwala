@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({
     user, loading,
     async login(credentials) { const { data } = await api.post('/auth/login', credentials); localStorage.setItem('kabadivala_token', data.data.token); setUser(data.data.user); return data },
-    async register(details) { const { data } = await api.post('/auth/register', details); localStorage.setItem('kabadivala_token', data.data.token); setUser(data.data.user); return data },
+    async register(details) { const { data } = await api.post('/auth/register', details); if (data.data.token) { localStorage.setItem('kabadivala_token', data.data.token); setUser(data.data.user) } return data },
     logout() { localStorage.removeItem('kabadivala_token'); setUser(null) }
   }), [user, loading])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
