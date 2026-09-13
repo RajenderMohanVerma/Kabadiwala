@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Camera, CircleAlert, Clock3, Leaf, LogIn, Recycle, ShieldCheck, Sparkles, Star, Truck, CheckCircle2, ImagePlus, Bell, Package, Award, MessageSquare, TrendingUp, User, Calendar, MapPin, Weight, ChevronRight, Download, Plus, RefreshCw, Clock, CheckCheck, XCircle, AlertCircle, Inbox } from 'lucide-react'
+import { ArrowRight, Camera, CircleAlert, Clock3, Leaf, LogIn, Recycle, ShieldCheck, Sparkles, Star, Truck, CheckCircle2, ImagePlus, Bell, Package, Award, MessageSquare, TrendingUp, User, Calendar, MapPin, Weight, ChevronRight, Download, Plus, RefreshCw, Clock, CheckCheck, XCircle, AlertCircle, Inbox, Send, Mail, Headphones } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { forwardRef, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -1654,9 +1654,12 @@ export function FaqPage() {
     <main className="faq-page">
       <section className="faq-page__hero">
         <div className="container">
-          <span className="eyebrow">Support & guidance</span>
-          <h1>Questions? We have answers<span>.</span></h1>
-          <p>Browse common questions or ask our Kabadivala assistant about pickups, recycling and your account.</p>
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
+            <span className="eyebrow"><Sparkles size={14} /> Support & guidance</span>
+            <h1>Clear answers for a <em>cleaner journey</em>.</h1>
+            <p>Learn how Kabadivala works, compare the benefits and limitations, or ask our AI assistant anything about the platform.</p>
+            <div className="faq-page__hero-pills"><span><CheckCircle2 size={14} /> Human-friendly help</span><span><ShieldCheck size={14} /> Verified information</span><span><MessageSquare size={14} /> Ask anytime</span></div>
+          </motion.div>
         </div>
       </section>
       <section className="section">
@@ -1667,20 +1670,50 @@ export function FaqPage() {
               <h2>Quick answers for getting started.</h2>
             </div>
             <div className="lp-faq">
-              {faqItems.map(([q, a]) => <details className="lp-faq__item" key={q}><summary>{q}</summary><p>{a}</p></details>)}
+              {faqItems.map(([q, a], index) => <motion.details className="lp-faq__item" key={q} initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.07 }}><summary>{q}</summary><p>{a}</p></motion.details>)}
             </div>
           </div>
-          <Panel title="Ask Kabadivala">
+          <Panel title={<><MessageSquare size={18} /> Ask Kabadivala</>}>
             <form className="faq-chat-form" onSubmit={askQuestion}>
               <label className="field"><span>Your question</span><textarea value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={500} rows={5} placeholder="How do I book a pickup?" /></label>
               <button className="button primary" disabled={busy || !question.trim()}><MessageSquare size={15} /> {busy ? 'Thinking…' : 'Ask question'}</button>
             </form>
             {error && <p className="form-error mt-12">{error}</p>}
             {answer && <div className="faq-chat-answer"><b>Answer</b><p>{answer}</p></div>}
-            <small className="faq-chat-note">AI answers are focused on Kabadivala services. For account-specific help, contact support.</small>
+            <small className="faq-chat-note">Answers are based on Kabadivala features and policies. For private account help, contact support.</small>
           </Panel>
         </div>
+        <div className="container faq-page__benefits">
+          {[['Why Kabadivala?', 'A convenient, traceable way to move recyclable material from your home to certified processing.', <Leaf size={20} />], ['For every role', 'Customers, collectors, hubs, recyclers and admins each get tools built for their work.', <User size={20} />], ['Need a human?', 'Send a message to our team and we will help with questions the assistant cannot answer.', <Headphones size={20} />]].map(([title, copy, icon], index) => <motion.div className="faq-benefit" key={title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }}><span>{icon}</span><h3>{title}</h3><p>{copy}</p></motion.div>)}
+        </div>
       </section>
+    </main>
+  )
+}
+
+export function ContactPage() {
+  const [status, setStatus] = useState({ type: '', text: '' })
+  const [busy, setBusy] = useState(false)
+  const submit = async (event) => {
+    event.preventDefault()
+    setBusy(true)
+    setStatus({ type: '', text: '' })
+    const form = event.currentTarget
+    try {
+      await api.post('/contact', Object.fromEntries(new FormData(form)))
+      form.reset()
+      setStatus({ type: 'success', text: 'Message sent successfully. Our team will get back to you soon.' })
+    } catch (error) {
+      setStatus({ type: 'error', text: error.response?.data?.message || 'Unable to send your message right now.' })
+    } finally { setBusy(false) }
+  }
+  return (
+    <main className="contact-page">
+      <section className="contact-page__hero"><div className="container"><motion.div {...fadeUp}><span className="eyebrow"><Mail size={14} /> We are here to help</span><h1>Let’s make recycling <em>work better</em> together.</h1><p>Choose your role, share your question and our team will receive your message directly.</p></motion.div></div></section>
+      <section className="section"><div className="container contact-page__grid">
+        <motion.div className="contact-page__intro" {...fadeUp}><span className="eyebrow">Contact Kabadivala</span><h2>One inbox for every role.</h2><p>Whether you are booking a pickup, collecting materials, managing a hub or processing batches, tell us what you need.</p><div className="contact-role-list">{[['Customer', 'Pickup, account or eco points'], ['Collector', 'Requests, availability or earnings'], ['Hub manager', 'Collections, inventory or batches'], ['Recycler / Admin', 'Processing, certificates or platform help']].map(([title, copy]) => <div key={title}><CheckCircle2 size={17} /><span><b>{title}</b><small>{copy}</small></span></div>)}</div><a className="contact-email" href="mailto:rajendramohan7800@gmail.com"><Mail size={16} /> rajendramohan7800@gmail.com</a></motion.div>
+        <Panel title={<><Send size={18} /> Drop a message</>}><form className="form-grid contact-form" onSubmit={submit}><Field label="Your name" name="name" placeholder="Full name" required /><Field label="Email address" name="email" type="email" placeholder="you@example.com" required /><label className="field"><span>Your role</span><select name="role" defaultValue="CUSTOMER" required><option value="CUSTOMER">Customer</option><option value="COLLECTOR">Collector</option><option value="HUB_MANAGER">Hub manager</option><option value="RECYCLER">Recycler</option><option value="ADMIN">Admin</option><option value="OTHER">Other</option></select></label><Field label="Subject" name="subject" placeholder="How can we help?" required /><label className="field field-wide"><span>Message</span><textarea name="message" rows={6} maxLength={2000} placeholder="Tell us more about your question..." required /></label><div className="form-actions"><button className="button primary" disabled={busy}><Send size={15} /> {busy ? 'Sending…' : 'Send message'}</button>{status.text && <span className={status.type === 'success' ? 'success-text' : 'form-error'}>{status.text}</span>}</div></form></Panel>
+      </div></section>
     </main>
   )
 }

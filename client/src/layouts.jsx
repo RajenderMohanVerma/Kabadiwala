@@ -144,6 +144,7 @@ export function PublicLayout() {
             <Link className={`pub-nav__link${location.pathname === '/how-it-works' ? ' active' : ''}`} to="/how-it-works">How it works</Link>
             <Link className={`pub-nav__link${location.pathname === '/impact' ? ' active' : ''}`} to="/impact">Our impact</Link>
             <Link className={`pub-nav__link${location.pathname === '/faq' ? ' active' : ''}`} to="/faq">FAQ</Link>
+            <Link className={`pub-nav__link${location.pathname === '/contact' ? ' active' : ''}`} to="/contact">Contact</Link>
             <div className="pub-nav__divider" />
             <Link className="pub-nav__signin" to="/login">Sign in</Link>
             <Link className="button primary pub-nav__cta" to="/register">Get started <ArrowRight size={15} /></Link>
@@ -169,6 +170,7 @@ export function PublicLayout() {
               <Link to="/how-it-works" onClick={() => setMobileOpen(false)}>How it works</Link>
               <Link to="/impact" onClick={() => setMobileOpen(false)}>Our impact</Link>
               <Link className="pub-drawer__nav-btn" to="/faq" onClick={() => setMobileOpen(false)}>FAQ</Link>
+              <Link className="pub-drawer__nav-btn" to="/contact" onClick={() => setMobileOpen(false)}>Contact</Link>
             </nav>
             <div className="pub-drawer__actions">
               <Link className="button secondary full" to="/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
@@ -216,7 +218,7 @@ export function PublicLayout() {
               </div>
               <div className="footer-col">
                 <b>Support</b>
-                <a href="mailto:hello@kabadivala.example">Contact us</a>
+                <Link to="/contact">Contact us</Link>
                 <a href="#">Privacy policy</a>
                 <a href="#">Terms of service</a>
               </div>

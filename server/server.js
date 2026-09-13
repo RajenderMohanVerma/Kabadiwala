@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 import multer from 'multer'
 import PDFDocument from 'pdfkit'
 import QRCode from 'qrcode'
+import nodemailer from 'nodemailer'
 import { z } from 'zod'
 import { PrismaClient } from '@prisma/client'
 
@@ -45,6 +46,35 @@ app.use('/uploads', express.static(uploadDir))
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: true }))
 
 const send = (res, status, message, data) => res.status(status).json({ success: status < 400, message, ...(data === undefined ? {} : { data }) })
+const contactSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  email: z.string().trim().email().max(160),
+  role: z.enum(['CUSTOMER', 'COLLECTOR', 'HUB_MANAGER', 'RECYCLER', 'ADMIN', 'OTHER']),
+  subject: z.string().trim().min(3).max(160),
+  message: z.string().trim().min(10).max(2000)
+})
+const contactTransport = () => {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return null
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+  })
+}
+app.post('/api/contact', rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true }), asyncRoute(async (req, res) => {
+  const input = contactSchema.parse(req.body)
+  const transporter = contactTransport()
+  if (!transporter) return send(res, 503, 'Contact email is not configured. Please try again later.')
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: 'rajendramohan7800@gmail.com',
+    replyTo: input.email,
+    subject: `[Kabadivala ${input.role}] ${input.subject}`,
+    text: `Name: ${input.name}\nEmail: ${input.email}\nRole: ${input.role}\n\n${input.message}`
+  })
+  return send(res, 200, 'Message sent successfully')
+}))
 const publicUser = ({ passwordHash, ...user }) => user
 const signToken = (user) => jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' })
 const auth = async (req, res, next) => {
@@ -277,10 +307,15 @@ const faqChat = async (req, res) => {
     } else {
       const body = await modelListResponse.text()
       console.error(`Gemini FAQ model discovery failed with status ${modelListResponse.status}: ${providerErrorMessage(body).slice(0, 300)}`)
+      if ([401, 403].includes(modelListResponse.status)) return send(res, 502, 'Gemini rejected the API key or Generative Language API is not enabled. Check GEMINI_API_KEY in Render.')
     }
     const models = [...new Set([
-      ...configuredModels.filter((model) => availableModels.length === 0 || availableModels.includes(model)),
-      ...availableModels.filter((model) => /flash/i.test(model))
+      ...configuredModels,
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      ...availableModels.filter((model) => /flash/i.test(model)),
+      ...availableModels
     ])]
     const context = `You are Kabadivala's official support and product assistant. Kabadivala is a recycling platform for India.
 Project facts:
@@ -307,7 +342,7 @@ User question: ${question}`
       console.error(`Gemini FAQ failed with status ${response?.status}: ${providerErrorMessage(lastProviderMessage).slice(0, 300)}`)
       if ([401, 403].includes(response?.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
       if (response?.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
-      return send(res, 502, 'Gemini could not answer right now. Check GEMINI_MODEL and GEMINI_API_KEY in Render.')
+      return send(res, 502, `Gemini could not answer right now: ${providerErrorMessage(lastProviderMessage).slice(0, 180)}`)
     }
     const payload = await response.json()
     const answer = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text?.trim()

@@ -105,10 +105,20 @@ JWT_SECRET=replace-with-a-long-random-secret
 CLIENT_ORIGIN=http://localhost:5173,https://kabadiwala-26.vercel.app
 GEMINI_API_KEY=replace-with-your-gemini-api-key
 GEMINI_MODEL=gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-account@gmail.com
+SMTP_PASS=your-gmail-app-password
+SMTP_FROM=your-smtp-account@gmail.com
 ```
 
 `GEMINI_API_KEY` is optional for the rest of the application. Never commit a
 real key, database URL, JWT secret, or `server/.env`.
+
+The public Contact page sends messages to `rajendramohan7800@gmail.com` through
+SMTP. Configure the SMTP variables above in Render; for Gmail, use an App
+Password rather than your normal account password.
 
 `CLIENT_ORIGIN` accepts a comma-separated list. Keep both the local Vite
 origin and the deployed frontend origin when the same API serves both:
