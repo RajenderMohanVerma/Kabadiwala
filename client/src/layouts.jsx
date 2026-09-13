@@ -100,7 +100,7 @@ export function PublicLayout() {
       <header className={`pub-header${scrolled ? ' pub-header--scrolled' : ''}`}>
         <div className="pub-header__inner container">
           <Link className="logo" to="/">
-            <span className="brand-mark"><Recycle size={20} /></span>
+            <img className="brand-mark" src="/kabadivala_recycle_icon_accurate.svg" alt="" />
             <span className="logo-text">Kabadivala</span>
           </Link>
 
@@ -125,7 +125,7 @@ export function PublicLayout() {
           <div className="pub-drawer">
             <div className="pub-drawer__head">
               <Link className="logo" to="/" onClick={() => setMobileOpen(false)}>
-                <span className="brand-mark"><Recycle size={18} /></span>
+                <img className="brand-mark" src="/kabadivala_recycle_icon_accurate.svg" alt="" />
                 <span className="logo-text">Kabadivala</span>
               </Link>
               <button className="pub-drawer__close" onClick={() => setMobileOpen(false)} aria-label="Close menu"><X size={19} /></button>
@@ -154,7 +154,7 @@ export function PublicLayout() {
           <div className="footer-top">
             <div className="footer-brand">
               <Link className="logo footer-logo" to="/">
-                <span className="brand-mark"><Recycle size={18} /></span>
+                <img className="brand-mark" src="/kabadivala_recycle_icon_accurate.svg" alt="" />
                 <span className="logo-text">Kabadivala</span>
               </Link>
               <p>Responsible recycling, made simple for every home and every handoff across India.</p>
@@ -215,5 +215,5 @@ export function DashboardLayout() {
   const signOut = () => { logout(); navigate('/') }
   const nav = user?.role === 'COLLECTOR' ? collectorNav : user?.role === 'HUB_MANAGER' ? hubNav : user?.role === 'RECYCLER' ? recyclerNav : user?.role === 'ADMIN' ? adminNav : customerNav
   const home = user?.role === 'COLLECTOR' ? '/collector/dashboard' : user?.role === 'HUB_MANAGER' ? '/hub/dashboard' : user?.role === 'RECYCLER' ? '/recycler/dashboard' : user?.role === 'ADMIN' ? '/admin/dashboard' : '/customer/dashboard'
-  return <div className="dashboard-shell"><aside className={open ? 'sidebar open' : 'sidebar'}><div className="side-brand"><Link className="logo" to={home}><span className="brand-mark"><Recycle size={18} /></span>Kabadivala</Link><button className="icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Close menu"><X size={19} /></button></div><div className="side-label">{user?.role === 'COLLECTOR' ? 'Collector workspace' : `${user?.role?.replace('_', ' ')} workspace`}</div><nav className="side-nav">{nav.map(([label, Icon, href]) => <Link className={location.pathname === href || location.pathname.startsWith(`${href}/`) ? 'active' : ''} onClick={() => setOpen(false)} to={href} key={label}><Icon size={18} />{label}</Link>)}</nav><div className="side-bottom"><button onClick={signOut}><LogOut size={17} />Sign out</button></div></aside>{open && <div className="scrim" onClick={() => setOpen(false)} />}<div className="dashboard-main"><header className="dashboard-topbar"><button className="icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Open menu"><Menu size={21} /></button><div className="breadcrumbs"><Home size={15} /> <span>/</span> Workspace</div><div className="top-actions"><div className="profile-pill"><span>{user?.name?.slice(0, 1)}</span><b>{user?.name}</b><ChevronDown size={15} /></div></div></header><Outlet /></div></div>
+  return <div className="dashboard-shell"><aside className={open ? 'sidebar open' : 'sidebar'}><div className="side-brand"><Link className="logo" to={home}><img className="brand-mark" src="/kabadivala_recycle_icon_accurate.svg" alt="" />Kabadivala</Link><button className="icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Close menu"><X size={19} /></button></div><div className="side-label">{user?.role === 'COLLECTOR' ? 'Collector workspace' : `${user?.role?.replace('_', ' ')} workspace`}</div><nav className="side-nav">{nav.map(([label, Icon, href]) => <Link className={location.pathname === href || location.pathname.startsWith(`${href}/`) ? 'active' : ''} onClick={() => setOpen(false)} to={href} key={label}><Icon size={18} />{label}</Link>)}</nav><div className="side-bottom"><button onClick={signOut}><LogOut size={17} />Sign out</button></div></aside>{open && <div className="scrim" onClick={() => setOpen(false)} />}<div className="dashboard-main"><header className="dashboard-topbar"><button className="icon-button mobile-only" onClick={() => setOpen(true)} aria-label="Open menu"><Menu size={21} /></button><div className="breadcrumbs"><Home size={15} /> <span>/</span> Workspace</div><div className="top-actions"><div className="profile-pill"><span>{user?.name?.slice(0, 1)}</span><b>{user?.name}</b><ChevronDown size={15} /></div></div></header><Outlet /></div></div>
 }

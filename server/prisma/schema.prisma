@@ -60,6 +60,10 @@ model User {
   status              UserStatus            @default(ACTIVE)
   verified            Boolean               @default(false)
   address             String?
+  city                String?
+  state               String?
+  pincode             String?
+  bio                 String?
   latitude            Float?
   longitude           Float?
   serviceArea         String?

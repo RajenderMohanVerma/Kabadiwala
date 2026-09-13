@@ -632,7 +632,7 @@ function AuthShell({ children, side }) {
       <div className="auth-shell__form">
         <div className="auth-shell__form-inner">
           <Link className="auth-shell__logo" to="/">
-            <span className="brand-mark"><Recycle size={18} /></span>
+            <img className="brand-mark" src="/kabadivala_recycle_icon_accurate.svg" alt="" />
             <span className="logo-text">Kabadivala</span>
           </Link>
           {children}
@@ -1166,38 +1166,72 @@ export function PickupDetailPage() {
 
 // ─── Profile ─────────────────────────────────────────────────────────────────
 export function ProfilePage() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const [saved, setSaved] = useState('')
+  const [saveError, setSaveError] = useState('')
   const { register, handleSubmit, formState: { isSubmitting } } = useForm({ defaultValues: user })
   const submit = async (values) => {
-    await api.patch('/auth/profile', { ...values, capacityKg: values.capacityKg ? Number(values.capacityKg) : null, available: values.available === true || values.available === 'true' })
-    setSaved('Profile saved successfully!')
-    setTimeout(() => setSaved(''), 3000)
+    setSaveError('')
+    setSaved('')
+    try {
+      const { data } = await api.patch('/auth/profile', {
+        ...values,
+        pincode: values.pincode || null,
+        capacityKg: values.capacityKg ? Number(values.capacityKg) : null,
+        available: values.available === true || values.available === 'true'
+      })
+      updateUser(data.data.user)
+      setSaved('Profile saved successfully.')
+      setTimeout(() => setSaved(''), 3000)
+    } catch (error) {
+      setSaveError(error.response?.data?.message || 'Unable to save your profile. Please try again.')
+    }
   }
 
   return (
-    <div className="dashboard-content narrow">
-      <PageHeader eyebrow="Account" title="Your profile" copy="Keep your details up to date for the best experience." />
-      <Panel>
-        <div className="profile-avatar-row">
-          <div className="profile-avatar">{user?.name?.slice(0, 1)}</div>
-          <div><b>{user?.name}</b><small>{user?.email}</small><span className="badge2 badge2--success" style={{ marginTop: 6 }}>{user?.role?.replace('_', ' ')}</span></div>
-        </div>
-        <form className="form-grid mt-24" onSubmit={handleSubmit(submit)}>
-          <Field label="Full name" {...register('name')} />
-          <Field label="Phone number" {...register('phone')} />
-          <Field label="Address" {...register('address')} />
-          {user?.role === 'COLLECTOR' && <>
-            <Field label="Service area" {...register('serviceArea')} />
-            <Field label="Supported categories" placeholder="metal,paper,plastic" {...register('supportedCategories')} />
-            <Field label="Capacity (kg)" type="number" {...register('capacityKg')} />
-          </>}
-          <div className="form-actions">
-            <button className="button primary" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Save profile'}</button>
-            <AnimatePresence>{saved && <motion.span className="success-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{saved}</motion.span>}</AnimatePresence>
+    <div className="dashboard-content profile-page">
+      <PageHeader eyebrow="Account settings" title="Your profile" copy="Keep your identity and pickup preferences up to date." />
+      <div className="profile-layout">
+        <Panel className="profile-summary">
+          <div className="profile-identity">
+            <div className="profile-avatar">{user?.name?.slice(0, 1)?.toUpperCase()}</div>
+            <div>
+              <b>{user?.name}</b>
+              <small>{user?.email}</small>
+              <span className="badge2 badge2--success">{user?.role?.replace('_', ' ')}</span>
+            </div>
           </div>
-        </form>
-      </Panel>
+          <div className="profile-trust"><ShieldCheck size={16} /><span>Account verified and protected</span></div>
+          <div className="profile-summary-row"><span>Member since</span><b>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '—'}</b></div>
+          <div className="profile-summary-row"><span>Profile status</span><b className="profile-status">Active</b></div>
+        </Panel>
+        <Panel title="Personal details" className="profile-form-panel">
+          <p className="profile-section-copy">These details help us coordinate pickups and keep your account records accurate.</p>
+          <form className="form-grid" onSubmit={handleSubmit(submit)}>
+            <Field label="Full name" autoComplete="name" {...register('name', { required: true })} />
+            <Field label="Phone number" type="tel" autoComplete="tel" {...register('phone')} />
+            <Field label="Email address" value={user?.email || ''} readOnly />
+            <Field label="Pincode" inputMode="numeric" maxLength={6} placeholder="110001" {...register('pincode')} />
+            <Field label="City" {...register('city')} />
+            <Field label="State" {...register('state')} />
+            <Field label="Address" className="profile-field-wide" placeholder="House / flat, street and locality" {...register('address')} />
+            <Field label="About you" className="profile-field-wide" placeholder="A short note about your recycling preferences (optional)" {...register('bio')} />
+            {user?.role === 'COLLECTOR' && <div className="profile-role-section">
+              <div className="profile-role-heading"><Truck size={17} /><div><b>Collector preferences</b><small>Used to match you with suitable pickup requests.</small></div></div>
+              <div className="form-grid">
+                <Field label="Service area" {...register('serviceArea')} />
+                <Field label="Supported categories" placeholder="metal, paper, plastic" {...register('supportedCategories')} />
+                <Field label="Capacity (kg)" type="number" min="1" {...register('capacityKg')} />
+              </div>
+            </div>}
+            <div className="form-actions">
+              <button className="button primary" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Save changes'}</button>
+              <AnimatePresence>{saved && <motion.span className="success-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><CheckCircle2 size={14} /> {saved}</motion.span>}</AnimatePresence>
+              {saveError && <span className="form-error"><CircleAlert size={14} /> {saveError}</span>}
+            </div>
+          </form>
+        </Panel>
+      </div>
     </div>
   )
 }

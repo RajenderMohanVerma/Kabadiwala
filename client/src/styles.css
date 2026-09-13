@@ -134,10 +134,13 @@
 /* ═══════════════════════════════════════════════
    PROFILE PAGE
 ═══════════════════════════════════════════════ */
-.profile-avatar-row{display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.profile-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start}.profile-summary{margin:0}.profile-form-panel{margin:0}.profile-identity{display:flex;align-items:center;gap:14px}.profile-avatar-row{display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .profile-avatar{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--dark);color:#dff3a6;font:800 22px Manrope;flex-shrink:0}
 .profile-avatar-row b{display:block;font-size:16px;font-weight:700;color:var(--ink)}
 .profile-avatar-row small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.profile-identity b{display:block;font-size:16px}.profile-identity small{display:block;color:var(--muted);font-size:12px;margin:3px 0 8px}.profile-identity .badge2{display:inline-flex}.profile-trust{display:flex;align-items:center;gap:7px;margin:22px 0;padding:11px 12px;border-radius:10px;background:#f2f8e9;color:var(--green);font-size:12px;font-weight:700}.profile-summary-row{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid var(--line);font-size:12px}.profile-summary-row span{color:var(--muted)}.profile-status{color:var(--green)}.profile-section-copy{margin:-5px 0 22px;color:var(--muted);font-size:13px;line-height:1.6}.profile-field-wide{grid-column:1/-1}.profile-role-section{grid-column:1/-1;padding:18px;border:1px solid #d8e9cd;border-radius:13px;background:#f8fbf5}.profile-role-heading{display:flex;gap:9px;align-items:flex-start;margin-bottom:16px;color:var(--green)}.profile-role-heading b{display:block;color:var(--ink);font-size:13px}.profile-role-heading small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.profile-role-section .form-grid{margin:0}.success-text{display:inline-flex;align-items:center;gap:5px}
+@media(max-width:800px){.profile-layout{grid-template-columns:1fr}.profile-summary,.profile-form-panel{margin:0}.profile-page .ph{margin-bottom:22px}}
+@media(max-width:600px){.profile-role-section{padding:14px}.profile-role-section .form-grid{grid-template-columns:1fr}.profile-form-panel .form-actions{align-items:flex-start;flex-direction:column}}
 
 /* ═══════════════════════════════════════════════
    ECO POINTS PAGE
