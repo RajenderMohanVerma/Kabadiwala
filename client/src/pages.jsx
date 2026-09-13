@@ -1166,85 +1166,38 @@ export function PickupDetailPage() {
 
 // ─── Profile ─────────────────────────────────────────────────────────────────
 export function ProfilePage() {
-  const { user, updateUser } = useAuth()
+  const { user } = useAuth()
   const [saved, setSaved] = useState('')
-  const [error, setError] = useState('')
   const { register, handleSubmit, formState: { isSubmitting } } = useForm({ defaultValues: user })
-  const isCollector = user?.role === 'COLLECTOR'
-  const roleLabel = user?.role?.replaceAll('_', ' ') || 'Member'
-  const initials = user?.name?.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
-  const profileFields = [user?.name, user?.phone, user?.address, user?.city, user?.pincode, user?.bio].filter(Boolean).length
-  const profileProgress = Math.round((profileFields / 6) * 100)
   const submit = async (values) => {
-    setError('')
-    setSaved('')
-    try {
-      const { data } = await api.patch('/auth/profile', {
-        ...values,
-        capacityKg: values.capacityKg ? Number(values.capacityKg) : null,
-        ...(isCollector ? { available: values.available === true || values.available === 'true' } : {})
-      })
-      updateUser(data.data.user)
-      setSaved('All changes saved')
-      setTimeout(() => setSaved(''), 3000)
-    } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to save your profile. Please try again.')
-    }
+    await api.patch('/auth/profile', { ...values, capacityKg: values.capacityKg ? Number(values.capacityKg) : null, available: values.available === true || values.available === 'true' })
+    setSaved('Profile saved successfully!')
+    setTimeout(() => setSaved(''), 3000)
   }
 
   return (
-    <div className="dashboard-content profile-page">
-      <PageHeader eyebrow="Account centre" title="Your profile" copy="Keep your details current so every pickup feels personal, secure and effortless." />
-      <div className="profile-layout">
-        <motion.aside className="profile-summary" {...fadeUp}>
-          <div className="profile-summary__cover" />
-          <div className="profile-summary__content">
-            <div className="profile-avatar profile-avatar--large">{initials}</div>
-            <span className="profile-summary__role">{roleLabel}</span>
-            <h2>{user?.name}</h2>
-            <p>{user?.email}</p>
-            <div className="profile-summary__status"><span /> Account active</div>
-            <div className="profile-progress">
-              <div><span>Profile completeness</span><b>{profileProgress}%</b></div>
-              <div className="profile-progress__track"><i style={{ width: `${profileProgress}%` }} /></div>
-              <small>{profileProgress === 100 ? 'You are all set.' : 'Add a few more details to complete your profile.'}</small>
-            </div>
-            <div className="profile-summary__facts">
-              <div><MapPin size={15} /><span>{user?.city || 'City not added'}{user?.pincode ? ` · ${user.pincode}` : ''}</span></div>
-              <div><Calendar size={15} /><span>Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'recently'}</span></div>
-            </div>
-          </div>
-        </motion.aside>
-        <div className="profile-editor">
-          <Panel title="Personal information">
-            <p className="profile-section-copy">This information helps us identify you and keep you updated about your pickups.</p>
-            {error && <div className="auth-error profile-form-message"><CircleAlert size={15} /> {error}</div>}
-            <form className="form-grid profile-form" onSubmit={handleSubmit(submit)}>
-              <Field label="Full name" placeholder="Your full name" {...register('name')} />
-              <Field label="Phone number" type="tel" placeholder="+91 98765 43210" {...register('phone')} />
-              <Field label="Email address" type="email" value={user?.email || ''} readOnly />
-              <Field label="City" placeholder="e.g. New Delhi" {...register('city')} />
-              <Field label="Pincode" inputMode="numeric" placeholder="110001" {...register('pincode')} />
-              <Field label="Preferred pickup time" placeholder="e.g. Weekday evenings" {...register('preferredPickupTime')} />
-              <label className="auth-field field-wide"><span className="auth-field__label">Full address</span><textarea className="auth-field__input profile-textarea" rows="3" placeholder="House / flat, street and locality" {...register('address')} /></label>
-              <label className="auth-field field-wide"><span className="auth-field__label">About you <small>(optional)</small></span><textarea className="auth-field__input profile-textarea" rows="3" maxLength="500" placeholder="Tell us a little about yourself" {...register('bio')} /></label>
-              {isCollector && <div className="profile-role-section field-wide">
-                <div className="profile-role-section__heading"><div><Truck size={17} /><b>Collector preferences</b></div><small>Used for smarter pickup matching</small></div>
-                <div className="form-grid">
-                  <Field label="Service area" placeholder="e.g. South Delhi" {...register('serviceArea')} />
-                  <Field label="Supported categories" placeholder="metal, paper, plastic" {...register('supportedCategories')} />
-                  <Field label="Daily capacity (kg)" type="number" min="1" placeholder="e.g. 150" {...register('capacityKg')} />
-                  <label className="profile-toggle"><input type="checkbox" {...register('available')} /><span><b>Available for new pickups</b><small>Allow the system to match you with requests</small></span></label>
-                </div>
-              </div>}
-              <div className="form-actions profile-form__actions field-wide">
-                <button className="button primary" disabled={isSubmitting}>{isSubmitting ? 'Saving changes…' : 'Save changes'} <ArrowRight size={15} /></button>
-                <AnimatePresence>{saved && <motion.span className="success-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><CheckCircle2 size={15} /> {saved}</motion.span>}</AnimatePresence>
-              </div>
-            </form>
-          </Panel>
+    <div className="dashboard-content narrow">
+      <PageHeader eyebrow="Account" title="Your profile" copy="Keep your details up to date for the best experience." />
+      <Panel>
+        <div className="profile-avatar-row">
+          <div className="profile-avatar">{user?.name?.slice(0, 1)}</div>
+          <div><b>{user?.name}</b><small>{user?.email}</small><span className="badge2 badge2--success" style={{ marginTop: 6 }}>{user?.role?.replace('_', ' ')}</span></div>
         </div>
-      </div>
+        <form className="form-grid mt-24" onSubmit={handleSubmit(submit)}>
+          <Field label="Full name" {...register('name')} />
+          <Field label="Phone number" {...register('phone')} />
+          <Field label="Address" {...register('address')} />
+          {user?.role === 'COLLECTOR' && <>
+            <Field label="Service area" {...register('serviceArea')} />
+            <Field label="Supported categories" placeholder="metal,paper,plastic" {...register('supportedCategories')} />
+            <Field label="Capacity (kg)" type="number" {...register('capacityKg')} />
+          </>}
+          <div className="form-actions">
+            <button className="button primary" disabled={isSubmitting}>{isSubmitting ? 'Saving…' : 'Save profile'}</button>
+            <AnimatePresence>{saved && <motion.span className="success-text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>{saved}</motion.span>}</AnimatePresence>
+          </div>
+        </form>
+      </Panel>
     </div>
   )
 }

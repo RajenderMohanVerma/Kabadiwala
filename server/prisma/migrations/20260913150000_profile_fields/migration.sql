@@ -1,4 +1,0 @@
-ALTER TABLE "User" ADD COLUMN "city" TEXT;
-ALTER TABLE "User" ADD COLUMN "pincode" TEXT;
-ALTER TABLE "User" ADD COLUMN "bio" TEXT;
-ALTER TABLE "User" ADD COLUMN "preferredPickupTime" TEXT;

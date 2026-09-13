@@ -12,7 +12,6 @@ export function AuthProvider({ children }) {
   }, [])
   const value = useMemo(() => ({
     user, loading,
-    updateUser(nextUser) { setUser(nextUser) },
     async login(credentials) { const { data } = await api.post('/auth/login', credentials); localStorage.setItem('kabadivala_token', data.data.token); setUser(data.data.user); return data },
     async register(details) { const { data } = await api.post('/auth/register', details); if (data.data.token) { localStorage.setItem('kabadivala_token', data.data.token); setUser(data.data.user) } return data },
     logout() { localStorage.removeItem('kabadivala_token'); setUser(null) }
