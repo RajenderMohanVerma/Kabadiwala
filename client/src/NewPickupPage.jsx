@@ -1,19 +1,19 @@
 import { Camera, ImagePlus, Sparkles, MapPin, Calendar, Package, Weight, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useRef, useState } from 'react'
+import { forwardRef, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from './services/api'
 
-function Field({ label, error, ...props }) {
+const Field = forwardRef(function Field({ label, error, ...props }, ref) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input {...props} />
+      <input {...props} ref={ref} />
       {error && <small className="form-error">{error}</small>}
     </label>
   )
-}
+})
 
 const steps = [
   { id: 1, label: 'Scan item', icon: <Camera size={16} /> },
@@ -190,7 +190,16 @@ export default function NewPickupPage() {
                 <div><h2>Pickup schedule</h2><p>Choose a convenient date, time and address for the collector visit.</p></div>
               </div>
               <div className="form-grid">
-                <Field label="Pickup address *" placeholder="House no., street, area, city" {...register('address', { required: true })} error={errors.address && 'Address is required'} />
+                <Field
+                  label="Pickup address *"
+                  placeholder="House no., street, area, city"
+                  {...register('address', {
+                    required: 'Address is required',
+                    validate: (value) => value.trim().length > 0 || 'Address is required',
+                    setValueAs: (value) => value.trim()
+                  })}
+                  error={errors.address?.message}
+                />
                 <Field label="Pickup date *" type="date" {...register('pickupDate', { required: true })} />
                 <Field label="Preferred time *" type="time" {...register('pickupTime', { required: true })} />
                 <label className="field">
