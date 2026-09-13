@@ -686,7 +686,9 @@ app.use((error, _req, res, _next) => {
   if (error instanceof z.ZodError) return send(res, 400, 'Please check the submitted fields', { issues: error.issues })
   if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') return send(res, 400, 'Images must be JPG, JPEG, PNG or WEBP files up to 5MB')
   if (error instanceof multer.MulterError || error.message?.includes('image')) return send(res, 400, 'Only JPG, JPEG, PNG or WEBP images up to 5MB are allowed')
-  if (['P1001', 'P1002', 'P1017'].includes(error.code)) {
+  if (['P1001', 'P1002', 'P1017'].includes(error.code)
+    || error.name === 'PrismaClientInitializationError'
+    || error.message?.includes("Can't reach database server")) {
     console.error(`Database connection failed (${error.code}):`, error.message)
     return send(res, 503, 'Database is unavailable. Start PostgreSQL and verify DATABASE_URL before signing in.')
   }
