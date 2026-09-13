@@ -263,17 +263,51 @@ const faqChat = async (req, res) => {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30_000)
   try {
-    const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').split(',')[0].trim().replace(/^models\//, '')
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
-      method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: `You are the helpful Kabadivala recycling support assistant. Answer the user's question in plain, concise language using only information about Kabadivala pickups, recyclable materials, collectors, accounts, eco points and certificates. If the question is unrelated or requires private account access, say that you cannot help and suggest contacting support. Do not invent prices, policies or personal data.\n\nUser question: ${question}` }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 300 } })
+    const configuredModels = (process.env.GEMINI_MODEL || 'gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash')
+      .split(',').map((model) => model.trim().replace(/^models\//, '')).filter(Boolean)
+    let availableModels = []
+    const modelListResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+      signal: controller.signal, headers: { Accept: 'application/json' }
     })
-    if (!response.ok) {
-      const body = await response.text()
-      console.error(`Gemini FAQ failed with status ${response.status}: ${providerErrorMessage(body).slice(0, 300)}`)
-      if ([401, 403].includes(response.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
-      if (response.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
-      return send(res, 502, 'Unable to get an answer from the AI provider')
+    if (modelListResponse.ok) {
+      const modelList = await modelListResponse.json()
+      availableModels = (modelList.models || [])
+        .filter((model) => model.supportedGenerationMethods?.includes('generateContent'))
+        .map((model) => model.name?.replace(/^models\//, '')).filter(Boolean)
+    } else {
+      const body = await modelListResponse.text()
+      console.error(`Gemini FAQ model discovery failed with status ${modelListResponse.status}: ${providerErrorMessage(body).slice(0, 300)}`)
+    }
+    const models = [...new Set([
+      ...configuredModels.filter((model) => availableModels.length === 0 || availableModels.includes(model)),
+      ...availableModels.filter((model) => /flash/i.test(model))
+    ])]
+    const context = `You are Kabadivala's official support and product assistant. Kabadivala is a recycling platform for India.
+Project facts:
+- Customers can register, describe or AI-scan recyclable items, book pickups, choose a time slot, track status, verify the handoff with a one-time QR token, earn eco points and receive recycling certificates.
+- Accepted categories include e-waste, metals, paper, cardboard, plastic, glass and textiles. Batteries and chemicals need special handling and support guidance.
+- Verified collectors receive matched requests based on service area, supported categories, capacity, availability, distance and rating. Hubs verify collections and recyclers process batches and issue certificates.
+- The platform provides live handoff visibility, ratings/reviews, complaints, notifications, profile management and admin monitoring.
+- Strengths: transparent chain of custody, convenient home pickups, verified roles, measurable environmental impact and fairer work for collectors.
+- Limitations: pickup availability depends on city, collector capacity and schedule; exact prices/earnings are not guaranteed in this assistant; account-specific status requires signing in; hazardous material acceptance requires support confirmation.
+Answer questions about this project accurately and practically. Explain both benefits and limitations when asked for pros and cons. Never invent prices, locations, policies, account data or guarantees. For private account actions, explain the relevant dashboard path and advise the user to sign in. For unrelated questions, politely say you are focused on Kabadivala.
+User question: ${question}`
+    let response
+    let lastProviderMessage = ''
+    for (const model of models) {
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
+        method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: context }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 500 } })
+      })
+      if (response.ok) break
+      lastProviderMessage = await response.text()
+      if (![400, 404, 429].includes(response.status)) break
+    }
+    if (!response?.ok) {
+      console.error(`Gemini FAQ failed with status ${response?.status}: ${providerErrorMessage(lastProviderMessage).slice(0, 300)}`)
+      if ([401, 403].includes(response?.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
+      if (response?.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
+      return send(res, 502, 'Gemini could not answer right now. Check GEMINI_MODEL and GEMINI_API_KEY in Render.')
     }
     const payload = await response.json()
     const answer = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text?.trim()
