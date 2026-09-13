@@ -73,6 +73,11 @@ export function PublicLayout() {
     setMobileOpen(false)
   }, [location.pathname])
 
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
+
   // FAQ link — go to how-it-works page and scroll to faq section
   const handleFaqClick = (e) => {
     e.preventDefault()
