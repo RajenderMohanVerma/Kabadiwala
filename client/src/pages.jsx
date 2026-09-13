@@ -461,12 +461,11 @@ function OurImpactPage() {
   ]
 
   const milestones = [
-    { date: 'Jan 2024', title: 'Kabadivala launched', desc: 'Started with 10 collectors in Delhi NCR and 50 beta customers.' },
-    { date: 'Mar 2024', title: '1,000 pickups milestone', desc: 'Reached our first 1,000 successful pickups across 3 cities.' },
-    { date: 'Jun 2024', title: 'AI scan launched', desc: 'Integrated Gemini AI for instant item identification and category suggestion.' },
-    { date: 'Sep 2024', title: '10 cities live', desc: 'Expanded to Mumbai, Bangalore, Hyderabad, Chennai and 6 more cities.' },
-    { date: 'Dec 2024', title: '10,000 pickups & 50 tons recycled', desc: 'Crossed major milestones with 500+ verified collectors nationwide.' },
-    { date: '2025', title: 'Pan-India expansion', desc: 'Targeting 50 cities, hub network expansion and recycler partnerships.' },
+    { date: 'Jan 2026', title: 'A cleaner year begins', desc: 'Kabadivala starts 2026 with a clear promise: make every household handoff measurable and meaningful.' },
+    { date: 'Mar 2026', title: '25 cities, one shared mission', desc: 'Our verified collector network brings reliable, traceable pickups to more communities across India.' },
+    { date: 'Jun 2026', title: 'Impact becomes personal', desc: 'Customers can see their own kilograms diverted, points earned and certificates collected in one place.' },
+    { date: 'Sep 2026', title: 'Every handoff, verified', desc: 'Live proof across home, collector, hub and recycler makes responsible recycling easier to trust.' },
+    { date: 'Dec 2026', title: 'The 2026 impact report', desc: 'We will publish our progress openly — from material recovery and collector earnings to cleaner neighbourhoods.' },
   ]
 
   const sdgs = [
@@ -482,21 +481,21 @@ function OurImpactPage() {
       <section className="imp-hero">
         <div className="container imp-hero__inner">
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <span className="eyebrow imp-eyebrow"><Leaf size={14} /> Our environmental impact</span>
-            <h1>Every kilogram tells<br />a <em>story of change</em>.</h1>
-            <p>Kabadivala connects people, proof and progress so responsible recycling becomes measurable, traceable and rewarding for everyone in the chain.</p>
+            <span className="eyebrow imp-eyebrow"><Leaf size={14} /> 2026 impact report</span>
+            <h1>Make waste<br /><em>matter more.</em></h1>
+            <p>In 2026, Kabadivala is turning everyday discards into visible progress — with a transparent trail from your doorstep to responsible recycling.</p>
             <div className="imp-hero__actions">
               <Link className="button primary" to="/register">Join the movement <ArrowRight size={16} /></Link>
-              <a className="button secondary" href="#stats">See the numbers ↓</a>
+              <a className="button secondary" href="#stats">Explore 2026 ↓</a>
             </div>
           </motion.div>
           <motion.div className="imp-hero__visual" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
             <div className="imp-earth">
               <div className="imp-earth__ring" />
-              <div className="imp-earth__core">🌍</div>
-              <div className="imp-earth__chip imp-earth__chip--1"><Leaf size={13} /> 50 tons saved</div>
-              <div className="imp-earth__chip imp-earth__chip--2"><Recycle size={13} /> 10K+ pickups</div>
-              <div className="imp-earth__chip imp-earth__chip--3"><Award size={13} /> Certified</div>
+              <div className="imp-earth__core">♻️</div>
+              <div className="imp-earth__chip imp-earth__chip--1"><Leaf size={13} /> 2026 / live</div>
+              <div className="imp-earth__chip imp-earth__chip--2"><Recycle size={13} /> 10K+ handoffs</div>
+              <div className="imp-earth__chip imp-earth__chip--3"><Award size={13} /> Proof-first</div>
             </div>
           </motion.div>
         </div>
@@ -554,8 +553,9 @@ function OurImpactPage() {
       <section className="section light imp-timeline-section">
         <div className="container">
           <div className="lp-section-head">
-            <span className="eyebrow">Our journey</span>
-            <h2>Milestones that matter.</h2>
+            <span className="eyebrow">Our 2026 journey</span>
+            <h2>Starting today. Building forward.</h2>
+            <p>We are measuring the year as it unfolds — one pickup, one collector and one recovered material at a time.</p>
           </div>
           <div className="imp-timeline">
             {milestones.map((m, i) => (

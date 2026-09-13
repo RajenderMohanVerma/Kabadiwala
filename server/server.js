@@ -661,6 +661,20 @@ app.get('/api/admin/users', auth, allow('ADMIN'), asyncRoute(async (req, res) =>
   const users = await prisma.user.findMany({ where: { ...(role ? { role } : {}), ...(req.query.search ? { OR: [{ name: { contains: String(req.query.search) } }, { email: { contains: String(req.query.search) } }] } : {}) }, select: { id: true, name: true, email: true, phone: true, role: true, status: true, verified: true, rating: true, createdAt: true }, orderBy: { createdAt: 'desc' } })
   send(res, 200, 'Users loaded', { users })
 }))
+app.get('/api/admin/users/:id', auth, allow('ADMIN'), asyncRoute(async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    select: {
+      id: true, name: true, email: true, phone: true, role: true, status: true, verified: true,
+      address: true, city: true, state: true, pincode: true, bio: true, latitude: true, longitude: true,
+      serviceArea: true, supportedCategories: true, capacityKg: true, available: true, rating: true,
+      totalRatings: true, createdAt: true, updatedAt: true,
+      _count: { select: { customerPickups: true, collectorPickups: true, reviewsGiven: true, reviewsReceived: true, complaints: true } }
+    }
+  })
+  if (!user) return send(res, 404, 'User not found')
+  send(res, 200, 'User details loaded', { user })
+}))
 app.patch('/api/admin/users/:id', auth, allow('ADMIN'), asyncRoute(async (req, res) => {
   const data = z.object({ status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(), verified: z.boolean().optional(), role: z.enum(['ADMIN', 'CUSTOMER', 'COLLECTOR', 'HUB_MANAGER', 'RECYCLER']).optional() }).parse(req.body)
   const user = await prisma.user.update({ where: { id: req.params.id }, data }); await audit(req.user.id, 'UPDATE_USER', 'USER', user.id, data); send(res, 200, 'User updated', { user: publicUser(user) })

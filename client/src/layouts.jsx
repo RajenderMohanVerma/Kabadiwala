@@ -1,4 +1,4 @@
-import { ArrowRight, ArrowUp, Bell, ChevronDown, ClipboardList, Home, LayoutDashboard, Leaf, LogOut, Menu, Recycle, Star, Truck, UserRound, X } from 'lucide-react'
+import { ArrowRight, ArrowUp, Bell, ChevronDown, ClipboardList, Download, Home, LayoutDashboard, Leaf, LogOut, Menu, Recycle, Star, Truck, UserRound, X } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useAuth } from './context/AuthContext'
@@ -29,6 +29,56 @@ function BackToTopButton() {
     >
       <ArrowUp size={20} />
     </button>
+  )
+}
+
+function InstallAppPrompt() {
+  const [visible, setVisible] = useState(false)
+  const [installEvent, setInstallEvent] = useState(null)
+
+  useEffect(() => {
+    const isMobile = window.matchMedia('(max-width: 900px)').matches
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone
+    if (!isMobile || isStandalone || window.localStorage.getItem('kabadivala-install-prompt-shown')) return undefined
+
+    const showPrompt = () => {
+      window.localStorage.setItem('kabadivala-install-prompt-shown', 'true')
+      setVisible(true)
+    }
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault()
+      setInstallEvent(event)
+    }
+
+    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    const timer = window.setTimeout(showPrompt, 700)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    }
+  }, [])
+
+  const closePrompt = () => setVisible(false)
+  const install = async () => {
+    if (installEvent) {
+      await installEvent.prompt()
+      setInstallEvent(null)
+      await installEvent.userChoice
+    }
+    closePrompt()
+  }
+
+  if (!visible) return null
+  return (
+    <div className="install-prompt" role="dialog" aria-label="Install Kabadivala app">
+      <div className="install-prompt__icon"><Download size={20} /></div>
+      <div className="install-prompt__copy">
+        <strong>Install Kabadivala</strong>
+        <span>Book pickups faster from your home screen.</span>
+      </div>
+      <button className="install-prompt__action" onClick={install}>Install</button>
+      <button className="install-prompt__close" onClick={closePrompt} aria-label="Dismiss install prompt"><X size={17} /></button>
+    </div>
   )
 }
 
@@ -146,6 +196,7 @@ export function PublicLayout() {
 
       <Outlet />
       <BackToTopButton />
+      <InstallAppPrompt />
 
       {/* ── FOOTER ── */}
       <footer className="site-footer">
