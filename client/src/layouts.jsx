@@ -209,6 +209,7 @@ export function PublicLayout() {
                 <Link to="/how-it-works">How it works</Link>
                 <Link to="/impact">Our impact</Link>
                 <Link className="footer-faq-btn" to="/faq">FAQs</Link>
+                <Link to="/contact">Contact</Link>
               </div>
               <div className="footer-col">
                 <b>Get started</b>
@@ -218,7 +219,7 @@ export function PublicLayout() {
               </div>
               <div className="footer-col">
                 <b>Support</b>
-                <Link to="/contact">Contact us</Link>
+                <a href="mailto:rajendramohan7800@gmail.com">Email support</a>
                 <a href="#">Privacy policy</a>
                 <a href="#">Terms of service</a>
               </div>
