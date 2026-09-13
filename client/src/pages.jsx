@@ -1010,9 +1010,12 @@ export function PickupDetailPage() {
     setReviewMessage('')
     try {
       await api.post(`/pickups/${id}/review`, { rating, feedback, comment: comment.trim() || undefined })
-      setReviewMessage('Thanks! Your rating has been submitted.')
       window.location.reload()
     } catch (e) {
+      if (e.response?.status === 409 && e.response?.data?.message?.toLowerCase().includes('already reviewed')) {
+        window.location.reload()
+        return
+      }
       setReviewMessage(e.response?.data?.message || 'Unable to submit your rating.')
     } finally {
       setReviewBusy(false)
