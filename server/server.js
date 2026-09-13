@@ -180,7 +180,21 @@ app.post('/api/auth/login', asyncRoute(async (req, res) => {
 }))
 app.get('/api/auth/me', auth, (req, res) => send(res, 200, 'Authenticated user', { user: publicUser(req.user) }))
 app.patch('/api/auth/profile', auth, asyncRoute(async (req, res) => {
-  const data = z.object({ name: z.string().trim().min(2).max(80).optional(), phone: z.string().trim().max(20).optional().nullable(), address: z.string().trim().max(500).optional().nullable(), latitude: z.number().optional().nullable(), longitude: z.number().optional().nullable(), serviceArea: z.string().max(100).optional().nullable(), supportedCategories: z.string().max(300).optional().nullable(), capacityKg: z.number().positive().optional().nullable(), available: z.boolean().optional() }).parse(req.body)
+  const data = z.object({
+    name: z.string().trim().min(2).max(80).optional(),
+    phone: z.string().trim().max(20).optional().nullable(),
+    address: z.string().trim().max(500).optional().nullable(),
+    city: z.string().trim().max(80).optional().nullable(),
+    pincode: z.preprocess((value) => value === '' ? null : value, z.string().trim().regex(/^\d{6}$/, 'Pincode must be 6 digits').optional().nullable()),
+    bio: z.string().trim().max(500).optional().nullable(),
+    preferredPickupTime: z.string().trim().max(60).optional().nullable(),
+    latitude: z.number().optional().nullable(),
+    longitude: z.number().optional().nullable(),
+    serviceArea: z.string().max(100).optional().nullable(),
+    supportedCategories: z.string().max(300).optional().nullable(),
+    capacityKg: z.number().positive().optional().nullable(),
+    available: z.boolean().optional()
+  }).parse(req.body)
   const user = await prisma.user.update({ where: { id: req.user.id }, data })
   return send(res, 200, 'Profile updated', { user: publicUser(user) })
 }))
