@@ -973,6 +973,10 @@ export function PickupDetailPage() {
   const [msgType, setMsgType] = useState('error')
   const [qr, setQr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [reviewBusy, setReviewBusy] = useState(false)
+  const [reviewMessage, setReviewMessage] = useState('')
 
   const transition = async (status) => {
     setBusy(true)
@@ -985,6 +989,24 @@ export function PickupDetailPage() {
     try { await api.post(`/pickups/${id}/match`); window.location.reload() }
     catch (e) { setMsgType('error'); setMessage(e.response?.data?.message || 'Matching failed') }
     finally { setBusy(false) }
+  }
+  const submitReview = async (event) => {
+    event.preventDefault()
+    if (!rating) {
+      setReviewMessage('Please select a rating before submitting.')
+      return
+    }
+    setReviewBusy(true)
+    setReviewMessage('')
+    try {
+      await api.post(`/pickups/${id}/review`, { rating, comment: comment.trim() || undefined })
+      setReviewMessage('Thanks! Your rating has been submitted.')
+      window.location.reload()
+    } catch (e) {
+      setReviewMessage(e.response?.data?.message || 'Unable to submit your rating.')
+    } finally {
+      setReviewBusy(false)
+    }
   }
 
   const pickup = state.data?.pickup
@@ -1029,6 +1051,41 @@ export function PickupDetailPage() {
                   </button>
                   {qr && <code className="qr-code">{qr}</code>}
                 </Panel>
+
+                {pickup.status === 'COLLECTED' && pickup.collector && !pickup.review && (
+                  <Panel title="Rate your collector">
+                    <p className="text-muted">How was your pickup experience with {pickup.collector.name}?</p>
+                    <form className="form-grid mt-12" onSubmit={submitReview}>
+                      <div className="rating-picker" role="group" aria-label="Collector rating">
+                        {[1, 2, 3, 4, 5].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`rating-star ${value <= rating ? 'rating-star--active' : ''}`}
+                            onClick={() => setRating(value)}
+                            aria-label={`${value} star${value === 1 ? '' : 's'}`}
+                          >
+                            <Star size={24} fill={value <= rating ? 'currentColor' : 'none'} />
+                          </button>
+                        ))}
+                      </div>
+                      <label className="field field-wide">
+                        <span>Comment (optional)</span>
+                        <textarea value={comment} onChange={(event) => setComment(event.target.value)} maxLength={1000} rows="3" placeholder="Share your pickup experience" />
+                      </label>
+                      {reviewMessage && <p className={reviewMessage.startsWith('Thanks') ? 'success-text' : 'form-error'}>{reviewMessage}</p>}
+                      <button className="button primary" disabled={reviewBusy || !rating}>
+                        {reviewBusy ? 'Submitting…' : 'Submit rating'}
+                      </button>
+                    </form>
+                  </Panel>
+                )}
+                {pickup.review && (
+                  <Panel title="Your collector rating">
+                    <div className="review-stars">{'★'.repeat(pickup.review.rating)}{'☆'.repeat(5 - pickup.review.rating)}</div>
+                    <p className="review-comment">"{pickup.review.comment || 'No comment left.'}"</p>
+                  </Panel>
+                )}
               </div>
 
               <Panel title="Live timeline" className="timeline-panel">
