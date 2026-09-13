@@ -740,7 +740,11 @@ export function LoginPage() {
 }
 
 // ─── Register Page ────────────────────────────────────────────────────────────
-const registerSchema = authSchema.extend({ name: z.string().min(2, 'Enter your full name'), role: z.enum(['CUSTOMER', 'COLLECTOR']) })
+const registerSchema = authSchema.extend({
+  name: z.string().min(2, 'Enter your full name'),
+  phone: z.string().trim().min(7, 'Enter a valid phone number'),
+  role: z.enum(['CUSTOMER', 'COLLECTOR', 'HUB_MANAGER', 'RECYCLER'])
+})
 
 export function RegisterPage() {
   const { register: createAccount } = useAuth()
@@ -749,6 +753,7 @@ export function RegisterPage() {
   const [showPass, setShowPass] = useState(false)
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(registerSchema), defaultValues: { role: 'CUSTOMER' } })
   const selectedRole = watch('role')
+  const roleNeedsApproval = selectedRole !== 'CUSTOMER'
 
   const submit = async (values) => {
     try {
@@ -787,8 +792,13 @@ export function RegisterPage() {
 
   const side = (
     <div className="auth-visual-content">
-      <div className="auth-visual-icon"><Leaf size={48} /></div>
-      <h2>Join 10,000+ people making recycling count.</h2>
+      <div className="auth-register-orbit">
+        <div className="auth-visual-icon"><Leaf size={48} /></div>
+        <span className="auth-orbit-dot auth-orbit-dot--one" />
+        <span className="auth-orbit-dot auth-orbit-dot--two" />
+      </div>
+      <span className="auth-side-kicker"><Sparkles size={13} /> Built for a cleaner tomorrow</span>
+      <h2>One account.<br /><em>Real-world impact.</em></h2>
       <p>Create your free account and become part of India's most transparent recycling network.</p>
       <div className="auth-visual-stats">
         {[['10K+', 'Pickups done'], ['500+', 'Collectors'], ['50T', 'Recycled'], ['4.9★', 'Rating']].map(([v, l]) => (
@@ -805,16 +815,21 @@ export function RegisterPage() {
     <AuthShell side={side}>
       <motion.div className="auth-form-box" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <div className="auth-form-head">
-          <h1>Create your account</h1>
+          <div className="auth-form-kicker"><span>01</span><i /><span>02</span><i /><span>03</span></div>
+          <span className="eyebrow">Start your journey</span>
+          <h1>Create your account<span>.</span></h1>
           <p>Join a more responsible recycling chain — free forever.</p>
         </div>
 
         <form className="auth-form" onSubmit={handleSubmit(submit)}>
           {/* Role selector */}
-          <div className="auth-role-label">I am joining as</div>
+          <div className="auth-section-heading">
+            <div><span className="auth-step">01</span><b>I am joining as</b></div>
+            <small>Choose your workspace</small>
+          </div>
           <div className="auth-role-cards">
             {roleCards.map((rc) => (
-              <label key={rc.value} className={`auth-role-card ${selectedRole === rc.value ? 'auth-role-card--active' : ''}`}>
+              <motion.label key={rc.value} whileHover={{ y: -3 }} whileTap={{ scale: 0.985 }} className={`auth-role-card ${selectedRole === rc.value ? 'auth-role-card--active' : ''}`}>
                 <input type="radio" value={rc.value} {...register('role')} className="visually-hidden" />
                 <div className="auth-role-card__icon">{rc.icon}</div>
                 <div className="auth-role-card__body">
@@ -825,16 +840,28 @@ export function RegisterPage() {
                   </div>
                 </div>
                 <div className="auth-role-card__check"><CheckCircle2 size={18} /></div>
-              </label>
+              </motion.label>
             ))}
           </div>
 
-          <Field label="Full name" placeholder="Rajender Mohan" error={errors.name?.message} {...register('name')} />
-          <Field label="Email address" type="email" placeholder="you@example.com" error={errors.email?.message} {...register('email')} />
-          <div className="auth-pass-wrap">
-            <Field label="Password" type={showPass ? 'text' : 'password'} placeholder="Min. 8 characters" error={errors.password?.message} {...register('password')} />
-            <button type="button" className="auth-pass-toggle" onClick={() => setShowPass(!showPass)}>{showPass ? 'Hide' : 'Show'}</button>
+          <div className="auth-section-heading auth-section-heading--details">
+            <div><span className="auth-step">02</span><b>Your details</b></div>
+            <small>Keep it secure</small>
           </div>
+          <div className="auth-register-fields">
+            <Field label="Full name" placeholder="Rajender Mohan" error={errors.name?.message} {...register('name')} />
+            <Field label="Phone number" type="tel" placeholder="9876543210" error={errors.phone?.message} {...register('phone')} />
+            <Field label="Email address" type="email" placeholder="you@example.com" error={errors.email?.message} {...register('email')} />
+            <div className="auth-pass-wrap">
+              <Field label="Password" type={showPass ? 'text' : 'password'} placeholder="Min. 8 characters" error={errors.password?.message} {...register('password')} />
+              <button type="button" className="auth-pass-toggle" onClick={() => setShowPass(!showPass)}>{showPass ? 'Hide' : 'Show'}</button>
+            </div>
+          </div>
+
+          <motion.div className={`auth-approval-note ${roleNeedsApproval ? 'auth-approval-note--pending' : ''}`} layout>
+            <ShieldCheck size={16} />
+            <span>{roleNeedsApproval ? 'This role needs admin approval before your first sign in.' : 'Customer accounts are ready to use immediately.'}</span>
+          </motion.div>
 
           <AnimatePresence>
             {error && (
@@ -845,7 +872,7 @@ export function RegisterPage() {
           </AnimatePresence>
 
           <button className="button primary auth-submit" disabled={isSubmitting}>
-            {isSubmitting ? <><div className="auth-spinner" /> Creating account…</> : <><ArrowRight size={17} /> Create free account</>}
+            {isSubmitting ? <><div className="auth-spinner" /> Creating account…</> : <><span>{roleNeedsApproval ? 'Request access' : 'Create free account'}</span><ArrowRight size={17} /></>}
           </button>
 
           <p className="auth-terms">By creating an account you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>

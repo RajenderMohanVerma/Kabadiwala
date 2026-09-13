@@ -62,7 +62,7 @@ const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req,
 const registerSchema = z.object({
   name: z.string().trim().min(2).max(80),
   email: z.string().trim().email().transform((v) => v.toLowerCase()),
-  phone: z.string().trim().min(7).max(20).optional(),
+  phone: z.string().trim().min(7, 'A valid phone number is required').max(20),
   password: z.string().min(8).max(100),
   role: z.enum(['CUSTOMER', 'COLLECTOR', 'HUB_MANAGER', 'RECYCLER']).default('CUSTOMER')
 })

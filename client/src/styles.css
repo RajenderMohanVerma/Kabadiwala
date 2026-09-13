@@ -576,7 +576,15 @@
 .auth-visual-content{color:#fff}
 .auth-visual-icon{display:grid;place-items:center;width:72px;height:72px;border-radius:20px;background:#ffffff18;color:#dff3a6;margin-bottom:24px;border:1px solid #ffffff20}
 .auth-visual-content h2{font:800 28px/1.2 Manrope;margin:0 0 14px;color:#fff}
+.auth-visual-content h2 em{font-style:normal;color:#dff3a6}
 .auth-visual-content p{color:#a9c2b4;font-size:15px;line-height:1.75;margin:0 0 28px}
+.auth-side-kicker{display:inline-flex;align-items:center;gap:7px;color:#dff3a6;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:15px}
+.auth-register-orbit{position:relative;width:90px;height:90px;margin-bottom:21px}
+.auth-register-orbit .auth-visual-icon{position:absolute;inset:9px;margin:0;z-index:1}
+.auth-orbit-dot{position:absolute;border-radius:50%;background:#dff3a6;box-shadow:0 0 0 5px #dff3a61a;animation:authOrbit 4s ease-in-out infinite}
+.auth-orbit-dot--one{width:8px;height:8px;right:4px;top:8px}
+.auth-orbit-dot--two{width:5px;height:5px;left:2px;bottom:15px;animation-delay:-1.5s}
+@keyframes authOrbit{50%{transform:translateY(-8px) scale(1.15)}}
 .auth-visual-features{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
 .auth-visual-feature{display:flex;align-items:center;gap:12px;font-size:14px;color:#d9e8df}
 .auth-visual-feature svg{color:#dff3a6;flex-shrink:0}
@@ -606,9 +614,13 @@
 .auth-visual-trust svg{color:#dff3a6}
 /* Form box */
 .auth-form-box{width:100%}
-.auth-form-head{margin-bottom:28px}
-.auth-form-head h1{font:800 28px Manrope;margin:0 0 8px;color:var(--ink)}
+.auth-form-head{margin-bottom:26px}
+.auth-form-head h1{font:800 31px Manrope;margin:8px 0 8px;color:var(--ink);letter-spacing:-.03em}
+.auth-form-head h1 span{color:var(--green)}
 .auth-form-head p{color:var(--muted);font-size:14px;margin:0}
+.auth-form-kicker{display:flex;align-items:center;gap:7px;color:#9aaca4;font:700 10px Manrope;letter-spacing:.08em}
+.auth-form-kicker span:first-child{color:var(--green)}
+.auth-form-kicker i{display:block;width:24px;height:1px;background:var(--line)}
 .auth-form{display:flex;flex-direction:column;gap:16px}
 /* Auth field */
 .auth-field{display:flex;flex-direction:column;gap:6px}
@@ -634,20 +646,30 @@
 .auth-terms{font-size:12px;color:var(--muted);text-align:center;margin:8px 0 0}
 .auth-terms a{color:var(--green);font-weight:600}
 /* Role cards */
-.auth-role-label{font-size:13px;font-weight:600;color:#456257;margin-bottom:10px}
-.auth-role-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:4px}
-.auth-role-card{display:flex;align-items:flex-start;gap:14px;padding:16px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;transition:all .2s;position:relative}
+.auth-section-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:-6px}
+.auth-section-heading>div{display:flex;align-items:center;gap:9px}
+.auth-section-heading b{font-size:13px;color:#456257}
+.auth-section-heading small{font-size:11px;color:#91a199}
+.auth-step{display:grid;place-items:center;width:23px;height:23px;border-radius:8px;background:#edf7d5;color:var(--green);font:800 10px Manrope}
+.auth-section-heading--details{margin-top:5px}
+.auth-role-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:2px}
+.auth-role-card{display:flex;align-items:flex-start;gap:11px;padding:13px;border:1.5px solid var(--line);border-radius:14px;cursor:pointer;transition:border-color .2s,background .2s,box-shadow .2s;position:relative;min-height:118px}
 .auth-role-card:hover{border-color:var(--green);background:#f8faf5}
 .auth-role-card--active{border-color:var(--green);background:#f0f9e8;box-shadow:0 0 0 3px #2e7d5215}
-.auth-role-card__icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#edf7d5;color:var(--green);flex-shrink:0}
+.auth-role-card__icon{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#edf7d5;color:var(--green);flex-shrink:0}
 .auth-role-card--active .auth-role-card__icon{background:var(--green);color:#fff}
 .auth-role-card__body{flex:1}
 .auth-role-card__body b{display:block;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px}
-.auth-role-card__body small{display:block;font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px}
+.auth-role-card__body small{display:block;font-size:11px;color:var(--muted);line-height:1.4;margin-bottom:7px}
 .auth-role-card__perks{display:flex;flex-wrap:wrap;gap:6px}
 .auth-role-card__perks span{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--green);background:#edf7d5;padding:3px 8px;border-radius:999px}
 .auth-role-card__check{color:var(--line);flex-shrink:0;transition:color .2s}
 .auth-role-card--active .auth-role-card__check{color:var(--green)}
+.auth-register-fields{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 12px}
+.auth-approval-note{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid #cfe4c4;border-radius:10px;background:#f4faea;color:#4d7359;font-size:11px;line-height:1.45}
+.auth-approval-note svg{color:var(--green);flex-shrink:0}
+.auth-approval-note--pending{background:#fff8e8;border-color:#f1dfae;color:#8a6a25}
+.auth-approval-note--pending svg{color:#b98a25}
 
 /* ═══════════════════════════════════════════════
    RESPONSIVE — PUBLIC INFO & AUTH
@@ -675,6 +697,8 @@
   .imp-stats{grid-template-columns:1fr 1fr}
   .imp-sdgs{grid-template-columns:1fr 1fr}
   .piw-hero h1,.imp-hero h1{font-size:32px}
+  .auth-role-cards,.auth-register-fields{grid-template-columns:1fr}
+  .auth-role-card{min-height:0}
 }
 
 /* ═══════════════════════════════════════════════
