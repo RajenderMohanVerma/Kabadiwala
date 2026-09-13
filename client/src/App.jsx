@@ -5,7 +5,7 @@ import {
   LoginPage, RegisterPage, LandingPage, DashboardPage, NotFoundPage, ForbiddenPage,
   CustomerPickupsPage, PickupDetailPage, ProfilePage, PointsPage, PublicInfoPage,
   ReviewsPage, ComplaintsPage, NotificationsPage, CollectorRequestsPage,
-  CollectorDetailPage, CollectorHistoryPage, CollectorAvailabilityPage, CollectorRatingsPage, FaqPage, ContactPage
+  CollectorDetailPage, CollectorHistoryPage, CollectorAvailabilityPage, CollectorRatingsPage, FaqPage, ContactPage, LegalPage
 } from './pages'
 import { Phase3Page, RecyclerBatchPage, HubBatchPage, BulkPickupPage, CertificatePage } from './phase3'
 import NewPickupPage from './NewPickupPage'
@@ -20,7 +20,7 @@ function Protected({ children, roles }) {
 
 function AppRoutes() {
   return <Routes>
-    <Route element={<PublicLayout />}><Route path="/" element={<LandingPage />} /><Route path="/how-it-works" element={<PublicInfoPage kind="how" />} /><Route path="/impact" element={<PublicInfoPage kind="impact" />} /><Route path="/faq" element={<FaqPage />} /><Route path="/contact" element={<ContactPage />} /></Route>
+    <Route element={<PublicLayout />}><Route path="/" element={<LandingPage />} /><Route path="/how-it-works" element={<PublicInfoPage kind="how" />} /><Route path="/impact" element={<PublicInfoPage kind="impact" />} /><Route path="/faq" element={<FaqPage />} /><Route path="/contact" element={<ContactPage />} /><Route path="/privacy-policy" element={<LegalPage kind="privacy" />} /><Route path="/terms-of-service" element={<LegalPage kind="terms" />} /></Route>
     <Route element={<AuthLayout />}><Route path="/login" element={<LoginPage />} /><Route path="/register" element={<RegisterPage />} /></Route>
     <Route element={<Protected><DashboardLayout /></Protected>}>
       <Route path="/dashboard" element={<DashboardPage />} />

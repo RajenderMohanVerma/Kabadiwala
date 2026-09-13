@@ -220,8 +220,8 @@ export function PublicLayout() {
               <div className="footer-col">
                 <b>Support</b>
                 <a href="mailto:rajendramohan7800@gmail.com">Email support</a>
-                <a href="#">Privacy policy</a>
-                <a href="#">Terms of service</a>
+                <Link to="/privacy-policy">Privacy policy</Link>
+                <Link to="/terms-of-service">Terms of service</Link>
               </div>
             </div>
           </div>

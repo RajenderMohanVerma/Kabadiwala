@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowRight, Camera, CircleAlert, Clock3, Leaf, LogIn, Recycle, ShieldCheck, Sparkles, Star, Truck, CheckCircle2, ImagePlus, Bell, Package, Award, MessageSquare, TrendingUp, User, Calendar, MapPin, Weight, ChevronRight, Download, Plus, RefreshCw, Clock, CheckCheck, XCircle, AlertCircle, Inbox, Send, Mail, Headphones } from 'lucide-react'
+import { ArrowRight, Camera, CircleAlert, Clock3, Leaf, LogIn, Recycle, ShieldCheck, Sparkles, Star, Truck, CheckCircle2, ImagePlus, Bell, Package, Award, MessageSquare, TrendingUp, User, Calendar, MapPin, Weight, ChevronRight, Download, Plus, RefreshCw, Clock, CheckCheck, XCircle, AlertCircle, Inbox, Send, Mail, Headphones, FileText, Scale } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { forwardRef, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -1736,6 +1736,48 @@ export function ContactPage() {
         </div>
       </div></section>
       <section className="contact-page__promise"><div className="container"><div><span className="eyebrow">Our promise</span><h2>Good support should feel simple.</h2></div><div className="contact-promise-list"><span><CheckCircle2 size={17} /> Clear, practical answers</span><span><ShieldCheck size={17} /> Respect for your privacy</span><span><Leaf size={17} /> Better outcomes for the planet</span></div></div></section>
+    </main>
+  )
+}
+
+const legalSections = {
+  privacy: {
+    eyebrow: 'Your trust matters',
+    title: <>Privacy built into every <em>handoff</em>.</>,
+    copy: 'This policy explains how Kabadivala collects, uses and protects information when you use our recycling platform.',
+    icon: ShieldCheck,
+    sections: [
+      ['Information we collect', 'We may collect your name, email address, phone number, pickup address, role, profile details and information you provide when requesting or managing a pickup. We also receive basic device and usage information needed to keep the service secure and reliable.'],
+      ['How we use information', 'We use information to create accounts, match pickups, communicate status updates, improve platform performance, prevent misuse and provide support. We do not sell your personal information.'],
+      ['Sharing and visibility', 'Details are shared only with the people and services needed to complete a request, such as an assigned collector or operational manager. We may use trusted infrastructure providers to host, secure and deliver the service.'],
+      ['Your choices', 'You can review or update profile information from your account, request help with your data, or contact us to ask questions about its use. Some operational records may need to be retained for safety, legal or audit purposes.'],
+      ['Security and retention', 'We use access controls and reasonable technical safeguards to protect account information. No online service can promise perfect security, so please keep your password private and tell us promptly about suspicious activity.'],
+      ['Contact the team', 'For privacy questions or requests, email rajendramohan7800@gmail.com. We will review your request and respond with the next steps.']
+    ]
+  },
+  terms: {
+    eyebrow: 'Simple, fair guidelines',
+    title: <>A better platform starts with <em>shared responsibility</em>.</>,
+    copy: 'These terms describe the ground rules for using Kabadivala safely, fairly and responsibly.',
+    icon: Scale,
+    sections: [
+      ['Using Kabadivala', 'You agree to provide accurate information, keep your account secure and use the platform only for lawful recycling, pickup and operational activities.'],
+      ['Pickups and handoffs', 'Pickup availability, timing and material acceptance can vary by location and operational capacity. Please describe materials honestly and follow the instructions shown for a safe handoff.'],
+      ['Accounts and roles', 'Some tools are available only to verified roles. Do not impersonate another person, share role-specific access, or attempt to access areas that are not assigned to you.'],
+      ['Responsible materials', 'Do not submit hazardous, illegal or unsafe items through a standard pickup request. If you are unsure about an item, contact support before handing it over.'],
+      ['Platform availability', 'We work to keep Kabadivala dependable, but maintenance, network issues or events outside our control may temporarily affect availability. We may update features and policies as the platform grows.'],
+      ['Questions and support', 'If you need clarification about a request, account or policy, contact rajendramohan7800@gmail.com before taking action. We prefer resolving concerns clearly and fairly.']
+    ]
+  }
+}
+
+export function LegalPage({ kind }) {
+  const content = legalSections[kind]
+  const Icon = content.icon
+  return (
+    <main className="legal-page">
+      <section className="legal-page__hero"><div className="container legal-page__hero-inner"><motion.div {...fadeUp}><span className="eyebrow"><Icon size={14} /> {content.eyebrow}</span><h1>{content.title}</h1><p>{content.copy}</p><small>Last updated · September 13, 2026</small></motion.div><motion.div className="legal-page__hero-card" initial={{ opacity: 0, scale: .86, rotate: 4 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: .6 }}><Icon size={36} /><b>{kind === 'privacy' ? 'Privacy first' : 'Fair use, clear rules'}</b><span>{kind === 'privacy' ? 'Your information stays purposeful and protected.' : 'Use the platform with care and respect.'}</span></motion.div></div></section>
+      <section className="section legal-page__body"><div className="container legal-page__layout"><aside className="legal-page__toc"><span>On this page</span>{content.sections.map(([heading]) => <a href={`#${heading.toLowerCase().replaceAll(' ', '-')}`} key={heading}>{heading}</a>)}</aside><div className="legal-page__content"><div className="legal-page__notice"><Icon size={18} /><span>Questions about this page? <a href="mailto:rajendramohan7800@gmail.com">Contact our support team</a>.</span></div>{content.sections.map(([heading, copy], index) => <motion.section id={heading.toLowerCase().replaceAll(' ', '-')} className="legal-block" key={heading} {...stagger(index)}><span className="legal-block__number">0{index + 1}</span><div><h2>{heading}</h2><p>{copy}</p></div></motion.section>)}</div></div></section>
     </main>
   )
 }
