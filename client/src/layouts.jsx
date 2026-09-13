@@ -110,7 +110,6 @@ export function PublicLayout() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
-  const navigate = useNavigate()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -128,12 +127,6 @@ export function PublicLayout() {
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
-  const handleFaqClick = (e) => {
-    e.preventDefault()
-    setMobileOpen(false)
-    navigate('/faq')
-  }
-
   return (
     <>
       <ScrollToTop />
@@ -150,7 +143,7 @@ export function PublicLayout() {
           <nav className="pub-nav">
             <Link className={`pub-nav__link${location.pathname === '/how-it-works' ? ' active' : ''}`} to="/how-it-works">How it works</Link>
             <Link className={`pub-nav__link${location.pathname === '/impact' ? ' active' : ''}`} to="/impact">Our impact</Link>
-            <button className={`pub-nav__link pub-nav__link--btn${location.pathname === '/faq' ? ' active' : ''}`} onClick={handleFaqClick}>FAQ</button>
+            <Link className={`pub-nav__link${location.pathname === '/faq' ? ' active' : ''}`} to="/faq">FAQ</Link>
             <div className="pub-nav__divider" />
             <Link className="pub-nav__signin" to="/login">Sign in</Link>
             <Link className="button primary pub-nav__cta" to="/register">Get started <ArrowRight size={15} /></Link>
@@ -175,7 +168,7 @@ export function PublicLayout() {
             <nav className="pub-drawer__nav">
               <Link to="/how-it-works" onClick={() => setMobileOpen(false)}>How it works</Link>
               <Link to="/impact" onClick={() => setMobileOpen(false)}>Our impact</Link>
-              <button className="pub-drawer__nav-btn" onClick={handleFaqClick}>FAQ</button>
+              <Link className="pub-drawer__nav-btn" to="/faq" onClick={() => setMobileOpen(false)}>FAQ</Link>
             </nav>
             <div className="pub-drawer__actions">
               <Link className="button secondary full" to="/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
@@ -213,7 +206,7 @@ export function PublicLayout() {
                 <b>Platform</b>
                 <Link to="/how-it-works">How it works</Link>
                 <Link to="/impact">Our impact</Link>
-                <button className="footer-faq-btn" onClick={handleFaqClick}>FAQs</button>
+                <Link className="footer-faq-btn" to="/faq">FAQs</Link>
               </div>
               <div className="footer-col">
                 <b>Get started</b>
