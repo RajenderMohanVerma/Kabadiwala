@@ -102,13 +102,25 @@ Set the values in `server/.env`:
 PORT=5000
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public"
 JWT_SECRET=replace-with-a-long-random-secret
-CLIENT_ORIGIN=http://localhost:5173
+CLIENT_ORIGIN=http://localhost:5173,https://kabadiwala-26.vercel.app
 GEMINI_API_KEY=replace-with-your-gemini-api-key
 GEMINI_MODEL=gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash
 ```
 
 `GEMINI_API_KEY` is optional for the rest of the application. Never commit a
 real key, database URL, JWT secret, or `server/.env`.
+
+`CLIENT_ORIGIN` accepts a comma-separated list. Keep both the local Vite
+origin and the deployed frontend origin when the same API serves both:
+
+```env
+CLIENT_ORIGIN=http://localhost:5173,https://kabadiwala-26.vercel.app
+```
+
+The local backend requires a running PostgreSQL server at the host in
+`DATABASE_URL`. The frontend cannot log in against the local API while that
+database is stopped or unavailable; the API will return a clear database
+availability error instead of a generic server error.
 
 ### Configure the frontend
 

@@ -28,7 +28,16 @@ const uploadDir = path.join(root, 'uploads')
 fs.mkdirSync(uploadDir, { recursive: true })
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
-app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }))
+const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true)
+    return callback(new Error('Origin is not allowed by CORS'))
+  }
+}))
 app.use(express.json({ limit: '1mb' }))
 app.use('/uploads', express.static(uploadDir))
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: true }))
@@ -677,6 +686,10 @@ app.use((error, _req, res, _next) => {
   if (error instanceof z.ZodError) return send(res, 400, 'Please check the submitted fields', { issues: error.issues })
   if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') return send(res, 400, 'Images must be JPG, JPEG, PNG or WEBP files up to 5MB')
   if (error instanceof multer.MulterError || error.message?.includes('image')) return send(res, 400, 'Only JPG, JPEG, PNG or WEBP images up to 5MB are allowed')
+  if (['P1001', 'P1002', 'P1017'].includes(error.code)) {
+    console.error(`Database connection failed (${error.code}):`, error.message)
+    return send(res, 503, 'Database is unavailable. Start PostgreSQL and verify DATABASE_URL before signing in.')
+  }
   console.error(error)
   return send(res, 500, 'Something went wrong on the server')
 })
