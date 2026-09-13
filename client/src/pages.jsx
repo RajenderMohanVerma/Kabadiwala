@@ -1528,7 +1528,9 @@ export function CollectorRatingsPage() {
             ? state.data.reviews.map((r, i) => (
               <motion.div className="review-card" key={r.id} {...stagger(i)}>
                 <div className="review-stars">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</div>
+                <FeedbackSummary feedback={r.feedback} />
                 <p className="review-comment">"{r.comment || 'Customer left no comment.'}"</p>
+                <small className="review-meta"><Package size={12} /> {r.pickup?.pickupCode || 'Completed pickup'}</small>
               </motion.div>
             ))
             : <EmptyState message="Ratings arrive after completed pickups." />}
