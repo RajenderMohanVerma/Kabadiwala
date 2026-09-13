@@ -587,11 +587,16 @@
 .auth-visual-demo__pass b{color:#fff}
 .auth-visual-demo__accounts{display:flex;flex-direction:column;gap:8px}
 .auth-visual-demo__account{display:flex;align-items:center;gap:10px}
+.auth-visual-demo__account{width:100%;border:0;text-align:left;cursor:pointer;font:inherit;background:transparent;padding:0}
+.auth-visual-demo__account:hover code{background:#ffffff20;color:#fff}
+.auth-visual-demo__account:focus-visible{outline:2px solid #dff3a6;outline-offset:3px;border-radius:7px}
 .auth-visual-demo__account code{font-size:12px;color:#c8dfd4;background:#ffffff0d;padding:4px 8px;border-radius:6px}
 .auth-demo-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700}
 .auth-demo-badge--customer{background:#dff3a6;color:#0c2e24}
 .auth-demo-badge--collector{background:#dbeafe;color:#1d4ed8}
 .auth-demo-badge--hub{background:#fce7f3;color:#be185d}
+.auth-demo-badge--recycler{background:#dcfce7;color:#15803d}
+.auth-demo-badge--admin{background:#ede9fe;color:#6d28d9}
 /* Stats on register visual */
 .auth-visual-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px}
 .auth-visual-stat{background:#ffffff12;border:1px solid #ffffff18;border-radius:12px;padding:14px 16px;text-align:center}

@@ -654,7 +654,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [showPass, setShowPass] = useState(false)
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(authSchema) })
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(authSchema) })
 
   const submit = async (values) => {
     try { const result = await login(values); navigate(rolePath(result.data.user.role)) }
@@ -662,10 +662,17 @@ export function LoginPage() {
   }
 
   const demoAccounts = [
-    { label: 'Customer', email: 'customer@demo.com', role: 'customer' },
-    { label: 'Collector', email: 'collector@demo.com', role: 'collector' },
-    { label: 'Hub Manager', email: 'hub@demo.com', role: 'hub' },
+    { label: 'Customer', email: 'customer@kabadivala.demo', role: 'customer' },
+    { label: 'Collector', email: 'collector@kabadivala.demo', role: 'collector' },
+    { label: 'Hub Manager', email: 'hub@kabadivala.demo', role: 'hub' },
+    { label: 'Recycler', email: 'recycler@kabadivala.demo', role: 'recycler' },
+    { label: 'Admin', email: 'admin@kabadivala.demo', role: 'admin' },
   ]
+  const fillDemoAccount = (account) => {
+    setValue('email', account.email, { shouldValidate: true, shouldDirty: true })
+    setValue('password', 'Demo@12345', { shouldValidate: true, shouldDirty: true })
+    setError('')
+  }
 
   const side = (
     <div className="auth-visual-content">
@@ -687,10 +694,10 @@ export function LoginPage() {
         <div className="auth-visual-demo__pass">Password: <b>Demo@12345</b></div>
         <div className="auth-visual-demo__accounts">
           {demoAccounts.map((d) => (
-            <div className="auth-visual-demo__account" key={d.label}>
+            <button type="button" className="auth-visual-demo__account" key={d.label} onClick={() => fillDemoAccount(d)} title={`Use ${d.label} demo account`}>
               <span className={`auth-demo-badge auth-demo-badge--${d.role}`}>{d.label}</span>
               <code>{d.email}</code>
-            </div>
+            </button>
           ))}
         </div>
       </div>
