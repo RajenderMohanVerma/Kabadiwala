@@ -155,6 +155,9 @@ npx prisma migrate deploy
 npm run prisma:seed
 ```
 
+`npm run prisma:seed` applies pending PostgreSQL migrations before running the
+seed, which keeps hosted deployments from seeding against an outdated schema.
+
 For local schema development:
 
 ```bash
