@@ -62,19 +62,6 @@ const contactTransport = () => {
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
   })
 }
-app.post('/api/contact', rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true }), asyncRoute(async (req, res) => {
-  const input = contactSchema.parse(req.body)
-  const transporter = contactTransport()
-  if (!transporter) return send(res, 503, 'Contact email is not configured. Please try again later.')
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: 'rajendramohan7800@gmail.com',
-    replyTo: input.email,
-    subject: `[Kabadivala ${input.role}] ${input.subject}`,
-    text: `Name: ${input.name}\nEmail: ${input.email}\nRole: ${input.role}\n\n${input.message}`
-  })
-  return send(res, 200, 'Message sent successfully')
-}))
 const publicUser = ({ passwordHash, ...user }) => user
 const signToken = (user) => jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' })
 const auth = async (req, res, next) => {
@@ -90,6 +77,19 @@ const auth = async (req, res, next) => {
 }
 const allow = (...roles) => (req, res, next) => roles.includes(req.user.role) ? next() : send(res, 403, 'You do not have permission to access this resource')
 const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
+app.post('/api/contact', rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true }), asyncRoute(async (req, res) => {
+  const input = contactSchema.parse(req.body)
+  const transporter = contactTransport()
+  if (!transporter) return send(res, 503, 'Contact email is not configured. Please try again later.')
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: 'rajendramohan7800@gmail.com',
+    replyTo: input.email,
+    subject: `[Kabadivala ${input.role}] ${input.subject}`,
+    text: `Name: ${input.name}\nEmail: ${input.email}\nRole: ${input.role}\n\n${input.message}`
+  })
+  return send(res, 200, 'Message sent successfully')
+}))
 
 const registerSchema = z.object({
   name: z.string().trim().min(2).max(80),
