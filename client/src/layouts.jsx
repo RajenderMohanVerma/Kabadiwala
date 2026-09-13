@@ -123,7 +123,7 @@ export function PublicLayout() {
                 <span className="brand-mark"><Recycle size={18} /></span>
                 <span className="logo-text">Kabadivala</span>
               </Link>
-              <button className="pub-drawer__close" onClick={() => setMobileOpen(false)} aria-label="Close">✕</button>
+              <button className="pub-drawer__close" onClick={() => setMobileOpen(false)} aria-label="Close menu"><X size={19} /></button>
             </div>
             <nav className="pub-drawer__nav">
               <Link to="/how-it-works" onClick={() => setMobileOpen(false)}>How it works</Link>
