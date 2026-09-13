@@ -51,7 +51,7 @@ const contactSchema = z.object({
   email: z.string().trim().email().max(160),
   role: z.enum(['CUSTOMER', 'COLLECTOR', 'HUB_MANAGER', 'RECYCLER', 'ADMIN', 'OTHER']),
   subject: z.string().trim().min(3).max(160),
-  message: z.string().trim().min(10).max(2000)
+  message: z.string().trim().min(3).max(2000)
 })
 const contactTransport = () => {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return null

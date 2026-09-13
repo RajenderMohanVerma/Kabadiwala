@@ -464,6 +464,36 @@
 .lp-cta-outline{background:transparent;color:#fff;font-weight:700;padding:14px 24px;border-radius:12px;border:1px solid #ffffff40}
 .lp-cta-outline:hover{background:#ffffff14}
 
+/* Contact page redesign */
+.contact-page{overflow:hidden;background:var(--paper)}
+.contact-page__hero{position:relative;padding:128px 0 104px;background:radial-gradient(circle at 82% 20%,#376d50 0,#173f2d 34%,#0c2e24 76%);color:#fff}
+.contact-page__hero:after{content:"";position:absolute;inset:auto -10% -130px;height:240px;background:var(--paper);border-radius:50% 50% 0 0/35% 35% 0 0}
+.contact-page__hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:60px;align-items:center}
+.contact-page__hero-copy h1{max-width:760px;margin:18px 0;font-size:clamp(2.8rem,6vw,5.5rem);line-height:1.02;letter-spacing:-.05em}
+.contact-page__hero-copy p{max-width:630px;color:#c7d8cf;font-size:1.08rem;line-height:1.75}
+.contact-page__hero-actions{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:30px}
+.contact-page__hero-actions .button.primary{background:var(--lime);color:var(--ink);box-shadow:0 12px 30px #0003}
+.contact-page__quick-link{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:700;font-size:14px}
+.contact-page__quick-link:hover{color:var(--lime)}
+.contact-orbit{position:relative;min-height:360px;display:grid;place-items:center}
+.contact-orbit__glow{position:absolute;width:280px;height:280px;border-radius:50%;background:#a8d86e25;filter:blur(2px);animation:contactPulse 4s ease-in-out infinite}
+.contact-orbit__core{position:relative;z-index:1;width:205px;height:205px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:9px;background:linear-gradient(145deg,#dff3a6,#8dbd65);color:var(--ink);box-shadow:0 0 0 18px #ffffff0c,0 25px 65px #0005;animation:contactFloat 5s ease-in-out infinite}
+.contact-orbit__core svg{color:#1e5b3f}.contact-orbit__core b{font:800 20px/1.05 Manrope}.contact-orbit__core small{font-size:11px;color:#37634a}
+.contact-float{position:absolute;z-index:2;display:flex;align-items:center;gap:10px;padding:13px 16px;border:1px solid #ffffff30;border-radius:15px;background:#ffffff12;backdrop-filter:blur(14px);box-shadow:0 12px 30px #0002;animation:contactFloat 5s ease-in-out infinite}
+.contact-float svg{color:var(--lime)}.contact-float b,.contact-float small{display:block}.contact-float b{font-size:13px}.contact-float small{margin-top:3px;color:#bed1c6;font-size:10px}.contact-float--one{top:32px;right:4px}.contact-float--two{bottom:45px;left:0;animation-delay:-2s}
+.contact-page__body{position:relative;z-index:2;padding-top:30px}
+.contact-page__section-head{max-width:620px;margin-bottom:34px}.contact-page__section-head h2{font:800 clamp(2rem,4vw,3.3rem)/1.1 Manrope;margin:13px 0}.contact-page__section-head p{color:var(--muted);line-height:1.7;margin:0}
+.contact-page__grid{grid-template-columns:.88fr 1.12fr;gap:72px}
+.contact-role-list{gap:10px;margin:0 0 28px}
+.contact-role-card{display:flex;align-items:center;gap:13px;padding:15px 16px;border:1px solid var(--line);border-radius:15px;background:#fff;transition:transform .25s,box-shadow .25s,border-color .25s}
+.contact-role-card:hover{transform:translateX(6px);border-color:#a9ca83;box-shadow:0 14px 28px #0c2e2412}.contact-role-card>span:nth-child(2){flex:1}.contact-role-card__icon{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#eaf5dc;color:var(--green)}.contact-role-card b,.contact-role-card small{display:block}.contact-role-card small{margin-top:3px;color:var(--muted);font-size:12px}.contact-role-card>svg{color:#a2b4aa}
+.contact-page__channels{display:grid;gap:10px}.contact-page__channels>a,.contact-page__channels>div{display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--line);color:inherit}.contact-page__channels>a>div,.contact-page__channels>div>div{flex:1}.contact-page__channels span{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:#eaf5dc;color:var(--green)}.contact-page__channels small,.contact-page__channels b{display:block}.contact-page__channels small{color:var(--muted);font-size:11px;margin-bottom:3px}.contact-page__channels b{font-size:13px}.contact-page__channels>a>svg{color:var(--green)}
+.contact-form-panel{border:1px solid #d6e2d1;box-shadow:0 22px 60px #0c2e2414}.contact-form{position:relative}.contact-form__intro{grid-column:1/-1;padding:12px 14px;border-radius:10px;background:#f1f7e9;color:var(--muted);font-size:12px;line-height:1.5}.contact-form__intro b{color:var(--green)}.contact-form__counter{display:block;text-align:right;color:var(--muted);font-size:11px;margin-top:5px}.contact-form textarea{min-height:150px}
+.contact-page__promise{padding:70px 0;background:#eaf3df}.contact-page__promise .container{display:flex;justify-content:space-between;align-items:center;gap:30px}.contact-page__promise h2{font:800 clamp(1.7rem,3vw,2.5rem) Manrope;margin:12px 0 0}.contact-promise-list{display:grid;gap:12px;color:var(--green);font-weight:700;font-size:13px}.contact-promise-list span{display:flex;align-items:center;gap:8px}
+@keyframes contactFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes contactPulse{0%,100%{transform:scale(.92);opacity:.65}50%{transform:scale(1.08);opacity:1}}
+@media(max-width:800px){.contact-page__hero{padding:105px 0 70px}.contact-page__hero-grid{grid-template-columns:1fr;gap:20px}.contact-orbit{min-height:300px;transform:scale(.88)}.contact-float--one{right:2%}.contact-float--two{left:4%}.contact-page__grid{grid-template-columns:1fr;gap:36px}.contact-page__promise .container{align-items:flex-start;flex-direction:column}.contact-page__body{padding-top:15px}}
+@media(max-width:480px){.contact-page__hero-actions{align-items:stretch;flex-direction:column}.contact-page__hero-actions .button,.contact-page__quick-link{justify-content:center}.contact-orbit{margin:-15px -30px}.contact-page__section-head{margin-bottom:25px}}
+
 /* ═══════════════════════════════════════════════
    HOW IT WORKS PAGE
 ═══════════════════════════════════════════════ */

@@ -1694,6 +1694,7 @@ export function FaqPage() {
 export function ContactPage() {
   const [status, setStatus] = useState({ type: '', text: '' })
   const [busy, setBusy] = useState(false)
+  const [messageLength, setMessageLength] = useState(0)
   const submit = async (event) => {
     event.preventDefault()
     setBusy(true)
@@ -1709,11 +1710,32 @@ export function ContactPage() {
   }
   return (
     <main className="contact-page">
-      <section className="contact-page__hero"><div className="container"><motion.div {...fadeUp}><span className="eyebrow"><Mail size={14} /> We are here to help</span><h1>Let’s make recycling <em>work better</em> together.</h1><p>Choose your role, share your question and our team will receive your message directly.</p></motion.div></div></section>
-      <section className="section"><div className="container contact-page__grid">
-        <motion.div className="contact-page__intro" {...fadeUp}><span className="eyebrow">Contact Kabadivala</span><h2>One inbox for every role.</h2><p>Whether you are booking a pickup, collecting materials, managing a hub or processing batches, tell us what you need.</p><div className="contact-role-list">{[['Customer', 'Pickup, account or eco points'], ['Collector', 'Requests, availability or earnings'], ['Hub manager', 'Collections, inventory or batches'], ['Recycler / Admin', 'Processing, certificates or platform help']].map(([title, copy]) => <div key={title}><CheckCircle2 size={17} /><span><b>{title}</b><small>{copy}</small></span></div>)}</div><a className="contact-email" href="mailto:rajendramohan7800@gmail.com"><Mail size={16} /> rajendramohan7800@gmail.com</a></motion.div>
-        <Panel title={<><Send size={18} /> Drop a message</>}><form className="form-grid contact-form" onSubmit={submit}><Field label="Your name" name="name" placeholder="Full name" required /><Field label="Email address" name="email" type="email" placeholder="you@example.com" required /><label className="field"><span>Your role</span><select name="role" defaultValue="CUSTOMER" required><option value="CUSTOMER">Customer</option><option value="COLLECTOR">Collector</option><option value="HUB_MANAGER">Hub manager</option><option value="RECYCLER">Recycler</option><option value="ADMIN">Admin</option><option value="OTHER">Other</option></select></label><Field label="Subject" name="subject" placeholder="How can we help?" required /><label className="field field-wide"><span>Message</span><textarea name="message" rows={6} maxLength={2000} placeholder="Tell us more about your question..." required /></label><div className="form-actions"><button className="button primary" disabled={busy}><Send size={15} /> {busy ? 'Sending…' : 'Send message'}</button>{status.text && <span className={status.type === 'success' ? 'success-text' : 'form-error'}>{status.text}</span>}</div></form></Panel>
+      <section className="contact-page__hero">
+        <div className="container contact-page__hero-grid">
+          <motion.div className="contact-page__hero-copy" initial={{ opacity: 0, x: -28 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .6 }}>
+            <span className="eyebrow"><Mail size={14} /> We are here to help</span>
+            <h1>Let’s make recycling <em>work better</em> together.</h1>
+            <p>Questions, ideas or a pickup concern? Tell us what is on your mind and our support team will get back to you with a clear next step.</p>
+            <div className="contact-page__hero-actions"><a className="button primary" href="#contact-form">Start a conversation <ArrowRight size={16} /></a><a className="contact-page__quick-link" href="mailto:rajendramohan7800@gmail.com"><Mail size={15} /> Email directly</a></div>
+          </motion.div>
+          <motion.div className="contact-orbit" initial={{ opacity: 0, scale: .85, rotate: -8 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: .8, delay: .15 }}>
+            <div className="contact-orbit__glow" /><div className="contact-orbit__core"><Headphones size={42} /><b>Support<br />that listens</b><small>Human help for every role</small></div>
+            <div className="contact-float contact-float--one"><Clock3 size={16} /><span><b>24h</b><small>Typical reply</small></span></div>
+            <div className="contact-float contact-float--two"><ShieldCheck size={16} /><span><b>Private & secure</b><small>Your details stay protected</small></span></div>
+          </motion.div>
+        </div>
+      </section>
+      <section className="section contact-page__body"><div className="container">
+        <div className="contact-page__section-head"><span className="eyebrow">Contact Kabadivala</span><h2>One inbox for every role.</h2><p>Choose the option that best describes you. It helps our team route your message faster.</p></div>
+        <div className="contact-page__grid">
+          <motion.div className="contact-page__intro" {...fadeUp}>
+            <div className="contact-role-list">{[['Customer', 'Pickup, account or eco points', User], ['Collector', 'Requests, availability or earnings', Truck], ['Hub manager', 'Collections, inventory or batches', Package], ['Recycler / Admin', 'Processing, certificates or platform help', ShieldCheck]].map(([title, copy, Icon], index) => <motion.div className="contact-role-card" key={title} {...stagger(index)}><span className="contact-role-card__icon"><Icon size={18} /></span><span><b>{title}</b><small>{copy}</small></span><ChevronRight size={16} /></motion.div>)}</div>
+            <div className="contact-page__channels"><a href="mailto:rajendramohan7800@gmail.com"><span><Mail size={17} /></span><div><small>Email support</small><b>rajendramohan7800@gmail.com</b></div><ArrowRight size={15} /></a><div><span><Clock3 size={17} /></span><div><small>Support hours</small><b>Mon–Sat · 9:00 AM–6:00 PM</b></div></div></div>
+          </motion.div>
+          <Panel className="contact-form-panel" title={<><Send size={18} /> Send us a message</>}><form id="contact-form" className="form-grid contact-form" onSubmit={submit}><div className="contact-form__intro">We usually respond within one business day. Fields marked with <b>*</b> are required.</div><Field label="Your name" name="name" placeholder="Full name" required /><Field label="Email address" name="email" type="email" placeholder="you@example.com" required /><label className="field"><span>Your role</span><select name="role" defaultValue="CUSTOMER" required><option value="CUSTOMER">Customer</option><option value="COLLECTOR">Collector</option><option value="HUB_MANAGER">Hub manager</option><option value="RECYCLER">Recycler</option><option value="ADMIN">Admin</option><option value="OTHER">Other</option></select></label><Field label="Subject" name="subject" placeholder="How can we help?" required /><label className="field field-wide"><span>Message</span><textarea name="message" rows={6} minLength={3} maxLength={2000} onChange={(event) => setMessageLength(event.target.value.length)} placeholder="Tell us more about your question..." required /><small className="contact-form__counter">{messageLength}/2000</small></label><div className="form-actions"><button className="button primary" disabled={busy}><Send size={15} /> {busy ? 'Sending…' : 'Send message'}</button>{status.text && <span className={status.type === 'success' ? 'success-text' : 'form-error'}>{status.text}</span>}</div></form></Panel>
+        </div>
       </div></section>
+      <section className="contact-page__promise"><div className="container"><div><span className="eyebrow">Our promise</span><h2>Good support should feel simple.</h2></div><div className="contact-promise-list"><span><CheckCircle2 size={17} /> Clear, practical answers</span><span><ShieldCheck size={17} /> Respect for your privacy</span><span><Leaf size={17} /> Better outcomes for the planet</span></div></div></section>
     </main>
   )
 }
