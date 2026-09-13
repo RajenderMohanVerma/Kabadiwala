@@ -27,6 +27,8 @@ const root = path.dirname(fileURLToPath(import.meta.url))
 const uploadDir = path.join(root, 'uploads')
 fs.mkdirSync(uploadDir, { recursive: true })
 
+// Render sits behind one trusted reverse proxy and forwards the client IP.
+app.set('trust proxy', 1)
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }))
 const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
   .split(',')
