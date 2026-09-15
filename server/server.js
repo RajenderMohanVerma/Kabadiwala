@@ -55,6 +55,14 @@ const contactSchema = z.object({
 })
 const smtpRequiredVariables = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS']
 const missingSmtpVariables = () => smtpRequiredVariables.filter((name) => !String(process.env[name] || '').trim())
+const brevoConfigured = () => Boolean(String(process.env.BREVO_API_KEY || '').trim() && String(process.env.BREVO_SENDER_EMAIL || '').trim())
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}[character]))
 const contactTransport = () => {
   if (missingSmtpVariables().length) return null
   const port = Number(process.env.SMTP_PORT || 587)
@@ -71,6 +79,33 @@ const contactTransport = () => {
     greetingTimeout: 15_000,
     socketTimeout: 20_000
   })
+}
+const sendContactWithBrevo = async (input) => {
+  const senderEmail = process.env.BREVO_SENDER_EMAIL.trim()
+  const senderName = String(process.env.BREVO_SENDER_NAME || 'Kabadivala Support').trim()
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+      'api-key': process.env.BREVO_API_KEY.trim(),
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: senderEmail, name: senderName }],
+      replyTo: { email: input.email, name: input.name },
+      subject: `[Kabadivala ${input.role}] ${input.subject}`,
+      textContent: `Name: ${input.name}\nEmail: ${input.email}\nRole: ${input.role}\n\n${input.message}`,
+      htmlContent: `<h2>New Kabadivala contact message</h2><p><strong>Name:</strong> ${escapeHtml(input.name)}</p><p><strong>Email:</strong> ${escapeHtml(input.email)}</p><p><strong>Role:</strong> ${escapeHtml(input.role)}</p><p><strong>Subject:</strong> ${escapeHtml(input.subject)}</p><p>${escapeHtml(input.message).replaceAll('\n', '<br />')}</p>`
+    })
+  })
+  if (!response.ok) {
+    const details = await response.text()
+    const error = new Error(`Brevo rejected the email (${response.status})`)
+    error.status = response.status
+    error.details = details
+    throw error
+  }
 }
 const publicUser = ({ passwordHash, ...user }) => user
 const signToken = (user) => jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' })
@@ -89,6 +124,15 @@ const allow = (...roles) => (req, res, next) => roles.includes(req.user.role) ? 
 const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next)
 app.post('/api/contact', rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true }), asyncRoute(async (req, res) => {
   const input = contactSchema.parse(req.body)
+  if (brevoConfigured()) {
+    try {
+      await sendContactWithBrevo(input)
+      return send(res, 200, 'Message sent successfully')
+    } catch (error) {
+      console.error('Brevo contact email delivery failed', { status: error?.status, details: error?.details })
+      return send(res, 502, 'Brevo could not send the message. Check BREVO_API_KEY and the verified BREVO_SENDER_EMAIL in Render.')
+    }
+  }
   const transporter = contactTransport()
   if (!transporter) return send(res, 503, `Contact email is not configured. Add these Render environment variables: ${missingSmtpVariables().join(', ')}. Then redeploy the backend.`)
   try {
