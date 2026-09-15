@@ -53,13 +53,17 @@ const contactSchema = z.object({
   subject: z.string().trim().min(3).max(160),
   message: z.string().trim().min(3).max(2000)
 })
+const smtpRequiredVariables = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS']
+const missingSmtpVariables = () => smtpRequiredVariables.filter((name) => !String(process.env[name] || '').trim())
 const contactTransport = () => {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return null
+  if (missingSmtpVariables().length) return null
+  const port = Number(process.env.SMTP_PORT || 587)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('SMTP_PORT must be a valid TCP port')
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
+    host: process.env.SMTP_HOST.trim(),
+    port,
     secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    auth: { user: process.env.SMTP_USER.trim(), pass: process.env.SMTP_PASS.trim() }
   })
 }
 const publicUser = ({ passwordHash, ...user }) => user
@@ -80,7 +84,7 @@ const asyncRoute = (handler) => (req, res, next) => Promise.resolve(handler(req,
 app.post('/api/contact', rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true }), asyncRoute(async (req, res) => {
   const input = contactSchema.parse(req.body)
   const transporter = contactTransport()
-  if (!transporter) return send(res, 503, 'Contact email is not configured. Please try again later.')
+  if (!transporter) return send(res, 503, `Contact email is not configured. Add these Render environment variables: ${missingSmtpVariables().join(', ')}. Then redeploy the backend.`)
   await transporter.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: 'rajendramohan7800@gmail.com',
