@@ -51,7 +51,10 @@ export default function NewPickupPage() {
       if (result.condition) setValue('condition', result.condition)
       if (result.estimatedWeightKg !== null && result.estimatedWeightKg !== undefined) setValue('estimatedWeight', result.estimatedWeightKg)
     } catch (e) {
-      setScan({ busy: false, message: e.response?.data?.message || 'Could not identify item. Fill details manually.', result: null })
+      const message = e.response?.status === 503
+        ? 'AI service is temporarily busy. Please try the same photo again in a few seconds, or continue by selecting the category manually.'
+        : e.response?.data?.message || 'Could not identify item. Fill details manually.'
+      setScan({ busy: false, message, result: null })
     }
   }
 

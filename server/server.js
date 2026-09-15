@@ -256,6 +256,7 @@ const normalizedImageMimeType = (file) => {
   if (extension === '.png') return 'image/png'
   return 'image/webp'
 }
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 const imageFilter = (_req, file, cb) => isSupportedImage(file)
   ? cb(null, true)
   : cb(new Error('Only JPG, JPEG, PNG or WEBP images up to 5MB are allowed'))
@@ -418,6 +419,7 @@ const identifyItem = async (req, res) => {
     let lastProviderMessage = ''
     const imageData = req.file.buffer.toString('base64')
     const mimeType = normalizedImageMimeType(req.file)
+    const retryableProviderStatuses = new Set([408, 429, 500, 502, 503, 504])
     for (const model of models) {
       const requestBody = (jsonMode) => ({
         contents: [{
@@ -438,23 +440,23 @@ Choose the dominant material when an item is mixed. Do not call a phone, laptop 
         }],
         generationConfig: { ...(jsonMode ? { responseMimeType: 'application/json' } : {}), temperature: 0.2 }
       })
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
-        method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody(true))
-      })
-      if (response.status === 400) {
-        lastProviderMessage = await response.text()
+      for (let attempt = 0; attempt < 2; attempt += 1) {
         response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`, {
-          method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody(false))
+          method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody(attempt === 0))
         })
+        if (response.ok) break
+        lastProviderMessage = await response.text()
+        if (response.status === 400 && attempt === 0) continue
+        if (!retryableProviderStatuses.has(response.status) || attempt === 1) break
+        await wait(350 * (attempt + 1))
       }
       if (response.ok) break
-      lastProviderMessage = await response.text()
-      if (![400, 404, 429].includes(response.status)) break
+      if (![400, 404, ...retryableProviderStatuses].includes(response.status)) break
     }
     if (!response.ok) {
       console.error(`Gemini item identification failed with status ${response.status}: ${providerErrorMessage(lastProviderMessage).slice(0, 500)}`)
       if ([401, 403].includes(response.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
-      if (response.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
+      if (retryableProviderStatuses.has(response.status)) return send(res, 503, 'Gemini is temporarily busy. The image service was retried automatically; please try the scan again in a few seconds.')
       const providerReason = providerErrorMessage(lastProviderMessage).replace(/\s+/g, ' ').slice(0, 220)
       return send(res, 502, `Gemini could not analyse this image (provider status ${response.status}). ${providerReason || 'No compatible vision model accepted the image request.'} In Render, set GEMINI_MODEL=gemini-2.5-flash, verify the API key has Generative Language API access, then redeploy.`)
     }
