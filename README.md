@@ -18,6 +18,26 @@
   <a href="https://kabadiwala-26.vercel.app/contact">Contact support</a>
 </p>
 
+<details>
+<summary><strong>Table of contents</strong></summary>
+
+- [Dashboard](#dashboard)
+- [Quick start](#quick-start)
+- [Product highlights](#product-highlights)
+- [Architecture](#architecture)
+- [Main user journeys](#main-user-journeys)
+- [AI item scanning](#gemini-item-identification)
+- [Live pricing estimate](#live-pricing-estimate)
+- [API foundation](#api-foundation)
+- [Production deployment](#production-deployment)
+- [Security and data handling](#security-and-data-handling)
+- [Known limitations](#known-limitations-and-next-improvements)
+
+</details>
+
+> **Project status:** Production-oriented academic project · Frontend on Vercel ·
+> API on Render · PostgreSQL database
+
 ## Dashboard
 
 | Area | What is included |
@@ -97,6 +117,19 @@ processing, and administrators can monitor the complete chain.
 - Professional legal pages for Privacy Policy and Terms of Service with
   responsive layouts, animated hero cards, section navigation, and links back
   to Contact support.
+
+<details>
+<summary><strong>What makes the pickup experience interactive?</strong></summary>
+
+- Camera-first image upload with a mobile `capture="environment"` flow.
+- Gemini vision suggests one or multiple recyclable items from the same image.
+- Detected items appear as separate editable rows in **Item details**.
+- Each row supports category, condition, quantity and weight editing.
+- Amount and total weight update instantly when a value changes.
+- Manual fallback is always available if AI is unavailable or uncertain.
+- The customer reviews all AI output before a pickup is submitted.
+
+</details>
 
 ## Architecture
 
@@ -271,6 +304,55 @@ roles are provisioned by seed/admin processes.
 6. Submit the pickup and track its status, proof, points, notifications, and
    certificate.
 
+### AI-assisted multi-item pickup
+
+```text
+Upload / camera photo
+        ↓
+Gemini vision analysis
+        ↓
+Separate item rows
+        ↓
+Edit category, condition and weight
+        ↓
+Live estimated amount + total
+        ↓
+Schedule verified pickup
+```
+
+## Live pricing estimate
+
+The New Pickup screen shows an **indicative estimate**, not a guaranteed final
+payment. The customer can edit each detected item's weight and condition; the
+total updates immediately.
+
+| Category | Indicative rate |
+| --- | ---: |
+| E-waste | ₹40/kg |
+| Metal | ₹35/kg |
+| Paper | ₹12/kg |
+| Plastic | ₹20/kg |
+| Glass | ₹8/kg |
+| Textile | ₹15/kg |
+| Other | ₹5/kg |
+
+Condition multipliers currently used by the frontend estimate:
+
+| Condition | Multiplier |
+| --- | ---: |
+| Working / Good | 100% |
+| Used | 85% |
+| Damaged | 60% |
+| Mixed | 45% |
+
+```text
+item estimate = weight × category rate × condition multiplier
+pickup total  = sum of every item estimate
+```
+
+Final value can change after collector/hub verification, actual weighing,
+material quality checks, location and current market conditions.
+
 ### Collector
 
 Collectors see eligible requests, accept work, advance status, and record
@@ -339,7 +421,8 @@ discovers models enabled for the configured API key, selects a compatible
 `generateContent` model, retries compatible response formats, and validates
 the structured result before returning it.
 
-The result can include:
+The result can include a primary item and, when several visible items are
+detected, an `items` array:
 
 ```json
 {
@@ -349,12 +432,45 @@ The result can include:
   "condition": "used",
   "estimatedWeightKg": 2.4,
   "confidence": 0.91,
-  "notes": "Review the weight before submitting."
+  "notes": "Review the weight before submitting.",
+  "items": [
+    {
+      "itemName": "old laptop",
+      "category": "E-waste",
+      "material": "electronics and plastic",
+      "condition": "Used",
+      "estimatedWeightKg": 2.4,
+      "confidence": 0.91,
+      "notes": "Remove battery separately if damaged."
+    }
+  ]
 }
 ```
 
-AI output is an assistive suggestion, not an authoritative classification.
-Users can always edit the fields or continue manually if AI is unavailable.
+The supported canonical categories are `E-waste`, `Metal`, `Paper`, `Plastic`,
+`Glass`, `Textile`, and `Other`. The backend normalizes common variants such
+as cardboard, PET, PVC, cloth, electronic device and aluminium into these
+categories. AI output is an assistive suggestion, not an authoritative
+classification. Users can always edit the fields or continue manually if AI
+is unavailable.
+
+<details>
+<summary><strong>Gemini troubleshooting</strong></summary>
+
+For Render, configure:
+
+```env
+GEMINI_API_KEY=your-valid-google-ai-studio-key
+GEMINI_MODEL=gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash
+```
+
+The backend discovers compatible `generateContent` models, retries temporary
+provider failures, and falls back across configured models. A `503` from
+Gemini means the provider is temporarily busy; the UI keeps manual category
+selection available. Make sure the key has Generative Language API access and
+redeploy the Render service after changing environment variables.
+
+</details>
 
 ## API foundation
 
@@ -476,19 +592,6 @@ npx prisma validate --schema server/prisma/schema.prisma
 The frontend build currently reports non-blocking Zod annotation and main
 bundle-size warnings. They do not prevent deployment.
 
-## Validation
-
-Run the existing checks from the repository root:
-
-```bash
-node --check server/server.js
-npm --prefix client run build
-```
-
-The frontend build generates the PWA manifest, service worker, Workbox assets,
-and production bundle. Existing non-blocking warnings include third-party Zod
-annotation messages and the large main JavaScript chunk.
-
 ## Security and data handling
 
 - Keep `server/.env`, database credentials, JWT secrets, and Gemini keys out
@@ -511,6 +614,35 @@ annotation messages and the large main JavaScript chunk.
 - The frontend is still delivered as a large primary bundle and can be
   improved with route-level code splitting.
 - Automated end-to-end coverage is not configured.
+
+## Contributing
+
+1. Create a focused branch for one feature or fix.
+2. Keep secrets out of commits and screenshots.
+3. Run the validation commands before opening a pull request.
+4. Update `README.md` and `brain.md` when a route, environment variable,
+   workflow or deployment behavior changes.
+5. Prefer small, reviewable changes that preserve existing role permissions.
+
+<details>
+<summary><strong>Useful commands</strong></summary>
+
+```bash
+# Backend syntax
+node --check server/server.js
+
+# Frontend production build
+npm --prefix client run build
+
+# Prisma schema validation
+npx prisma validate --schema server/prisma/schema.prisma
+
+# Inspect the working tree
+git status
+git diff --check
+```
+
+</details>
 
 ## License
 
