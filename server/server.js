@@ -63,7 +63,10 @@ const contactTransport = () => {
     host: process.env.SMTP_HOST.trim(),
     port,
     secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER.trim(), pass: process.env.SMTP_PASS.trim() },
+    auth: {
+      user: process.env.SMTP_USER.trim(),
+      pass: process.env.SMTP_PASS.replace(/\s+/g, '')
+    },
     connectionTimeout: 15_000,
     greetingTimeout: 15_000,
     socketTimeout: 20_000
@@ -97,8 +100,19 @@ app.post('/api/contact', rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standar
       text: `Name: ${input.name}\nEmail: ${input.email}\nRole: ${input.role}\n\n${input.message}`
     })
   } catch (error) {
-    console.error('Contact email delivery failed', error)
-    return send(res, 502, 'Email could not be sent. Check the SMTP host, port, Gmail App Password, and Render environment variables.')
+    console.error('Contact email delivery failed', {
+      code: error?.code,
+      responseCode: error?.responseCode,
+      command: error?.command
+    })
+    const message = error?.code === 'EAUTH' || error?.responseCode === 535
+      ? 'Gmail rejected the SMTP login. Use the same Gmail address in SMTP_USER and SMTP_FROM, and use a 16-character Gmail App Password (not your normal password).'
+      : error?.code === 'ETIMEDOUT' || error?.code === 'ECONNECTION'
+        ? 'The SMTP server could not be reached. Keep SMTP_HOST=smtp.gmail.com, SMTP_PORT=587, and SMTP_SECURE=false, then redeploy Render.'
+        : error?.code === 'ENOTFOUND'
+          ? 'The SMTP host could not be found. Set SMTP_HOST to smtp.gmail.com and redeploy Render.'
+          : 'Email could not be sent. Check the SMTP host, port, Gmail App Password, and Render environment variables.'
+    return send(res, 502, message)
   }
   return send(res, 200, 'Message sent successfully')
 }))

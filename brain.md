@@ -119,7 +119,10 @@ details, guarantees, or unsupported policies.
 The Contact form calls `POST /api/contact`, validates name, email, role,
 subject, and a 3–2000 character message, then sends an email to
 `rajendramohan7800@gmail.com` using Nodemailer. SMTP values remain on the
-backend. Footer links and legal-page support notices use React Router and
+backend. SMTP uses bounded connection/greeting/socket timeouts, removes spaces
+from grouped Gmail App Passwords, and returns safe, specific messages for
+authentication, connection, timeout, and DNS failures. Footer links and
+legal-page support notices use React Router and
 open the dedicated Contact page.
 
 The Contact visual system includes a gradient hero, animated support orbit,

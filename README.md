@@ -568,7 +568,11 @@ SMTP_FROM=your-smtp-account@gmail.com
 
 For Gmail, enable 2-Step Verification and create a 16-character App Password.
 Use that App Password in `SMTP_PASS`; never use or commit the normal Gmail
-password. Support messages are sent to `rajendramohan7800@gmail.com`.
+password. If Google displays the App Password in groups separated by spaces,
+you can paste it as shown; the server removes those spaces before authenticating.
+Keep `SMTP_USER` and `SMTP_FROM` set to the same Gmail address, then redeploy
+the Render backend after changing any variable. Support messages are sent to
+`rajendramohan7800@gmail.com`.
 
 ## Production checklist
 
