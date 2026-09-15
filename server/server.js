@@ -63,7 +63,10 @@ const contactTransport = () => {
     host: process.env.SMTP_HOST.trim(),
     port,
     secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: process.env.SMTP_USER.trim(), pass: process.env.SMTP_PASS.trim() }
+    auth: { user: process.env.SMTP_USER.trim(), pass: process.env.SMTP_PASS.trim() },
+    connectionTimeout: 15_000,
+    greetingTimeout: 15_000,
+    socketTimeout: 20_000
   })
 }
 const publicUser = ({ passwordHash, ...user }) => user
@@ -85,13 +88,18 @@ app.post('/api/contact', rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standar
   const input = contactSchema.parse(req.body)
   const transporter = contactTransport()
   if (!transporter) return send(res, 503, `Contact email is not configured. Add these Render environment variables: ${missingSmtpVariables().join(', ')}. Then redeploy the backend.`)
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: 'rajendramohan7800@gmail.com',
-    replyTo: input.email,
-    subject: `[Kabadivala ${input.role}] ${input.subject}`,
-    text: `Name: ${input.name}\nEmail: ${input.email}\nRole: ${input.role}\n\n${input.message}`
-  })
+  try {
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM?.trim() || process.env.SMTP_USER.trim(),
+      to: 'rajendramohan7800@gmail.com',
+      replyTo: input.email,
+      subject: `[Kabadivala ${input.role}] ${input.subject}`,
+      text: `Name: ${input.name}\nEmail: ${input.email}\nRole: ${input.role}\n\n${input.message}`
+    })
+  } catch (error) {
+    console.error('Contact email delivery failed', error)
+    return send(res, 502, 'Email could not be sent. Check the SMTP host, port, Gmail App Password, and Render environment variables.')
+  }
   return send(res, 200, 'Message sent successfully')
 }))
 

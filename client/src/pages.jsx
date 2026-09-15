@@ -1701,11 +1701,14 @@ export function ContactPage() {
     setStatus({ type: '', text: '' })
     const form = event.currentTarget
     try {
-      await api.post('/contact', Object.fromEntries(new FormData(form)))
+      await api.post('/contact', Object.fromEntries(new FormData(form)), { timeout: 25_000 })
       form.reset()
       setStatus({ type: 'success', text: 'Message sent successfully. Our team will get back to you soon.' })
     } catch (error) {
-      setStatus({ type: 'error', text: error.response?.data?.message || 'Unable to send your message right now.' })
+      const message = error.code === 'ECONNABORTED'
+        ? 'Email service timed out. Please verify the SMTP settings or email us directly.'
+        : error.response?.data?.message || 'Unable to send your message right now.'
+      setStatus({ type: 'error', text: message })
     } finally { setBusy(false) }
   }
   return (
