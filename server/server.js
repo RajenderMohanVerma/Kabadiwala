@@ -269,9 +269,20 @@ const aiUpload = multer({
   limits: { files: 1, fileSize: 5 * 1024 * 1024 },
   fileFilter: imageFilter
 })
+const recyclableCategories = ['E-waste', 'Metal', 'Paper', 'Plastic', 'Glass', 'Textile', 'Other']
+const normalizeRecyclableCategory = (value) => {
+  const category = String(value || '').trim().toLowerCase().replace(/[_-]+/g, ' ')
+  if (category.includes('electronic') || category.includes('e waste') || category === 'ewaste' || category.includes('computer') || category.includes('phone')) return 'E-waste'
+  if (category.includes('metal') || category.includes('aluminium') || category.includes('aluminum') || category.includes('steel') || category.includes('iron') || category.includes('copper')) return 'Metal'
+  if (category.includes('paper') || category.includes('cardboard') || category.includes('carton') || category.includes('newspaper')) return 'Paper'
+  if (category.includes('plastic') || category.includes('polymer') || category.includes('pet') || category.includes('pvc')) return 'Plastic'
+  if (category.includes('glass') || category.includes('bottle')) return 'Glass'
+  if (category.includes('textile') || category.includes('cloth') || category.includes('fabric') || category.includes('clothing')) return 'Textile'
+  return 'Other'
+}
 const itemIdentificationSchema = z.object({
   itemName: z.string().trim().min(1).max(120),
-  category: z.string().trim().min(1).max(60),
+  category: z.string().trim().min(1).max(60).transform(normalizeRecyclableCategory),
   material: z.string().trim().min(1).max(120),
   condition: z.string().trim().min(1).max(80),
   estimatedWeightKg: z.number().finite().nonnegative().max(100000),
@@ -394,7 +405,17 @@ const identifyItem = async (req, res) => {
       const requestBody = (jsonMode) => ({
         contents: [{
           parts: [
-            { text: 'Identify the recyclable item in this image. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes. Use a number in kilograms for estimatedWeightKg and a number from 0 to 1 for confidence. Keep notes concise. If uncertain, say so in notes and lower confidence.' },
+            { text: `You are a careful recycling-sorting vision assistant. Inspect the image and identify the main visible item or material. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes.
+category MUST be exactly one of: ${recyclableCategories.join(', ')}.
+Classification rules:
+- E-waste: phones, laptops, chargers, cables, keyboards, appliances, circuit boards and electronic devices.
+- Metal: iron, steel, aluminium, copper, cans, utensils, tools and metal parts without dominant electronics.
+- Paper: newspapers, books, office paper, cartons, cardboard and paper packaging.
+- Plastic: bottles, containers, wrappers, packaging, PVC and other plastic items.
+- Glass: bottles, jars, panes and other predominantly glass items.
+- Textile: clothes, fabric, shoes, bags, curtains and other predominantly textile items.
+- Other: mixed, organic, hazardous, liquid, unclear or non-recyclable items that do not fit one category.
+Choose the dominant material when an item is mixed. Do not call a phone, laptop or appliance Metal just because it has a metal body; use E-waste. Do not guess a brand or exact weight. estimatedWeightKg must be a realistic non-negative number in kilograms, confidence must be from 0 to 1, and notes must mention uncertainty or safety concerns when relevant.` },
             { inlineData: { mimeType, data: imageData } }
           ]
         }],

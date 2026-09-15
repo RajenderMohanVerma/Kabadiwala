@@ -49,7 +49,7 @@ export default function NewPickupPage() {
       if (result.category) setValue('category', result.category)
       if (result.itemName) setValue('itemDetails', result.itemName)
       if (result.condition) setValue('condition', result.condition)
-      if (result.estimatedWeightKg) setValue('estimatedWeight', result.estimatedWeightKg)
+      if (result.estimatedWeightKg !== null && result.estimatedWeightKg !== undefined) setValue('estimatedWeight', result.estimatedWeightKg)
     } catch (e) {
       setScan({ busy: false, message: e.response?.data?.message || 'Could not identify item. Fill details manually.', result: null })
     }
@@ -141,7 +141,7 @@ export default function NewPickupPage() {
                 {scan.result && (
                   <motion.div className="np-scan-result" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                     <CheckCircle2 size={18} />
-                    <div><b>{scan.result.itemName}</b><small>{scan.result.material || 'Material detected'} · {Math.round((scan.result.confidence || 0) * 100)}% confidence</small></div>
+                    <div><b>{scan.result.itemName}</b><small>{scan.result.category || 'Other'} · {scan.result.material || 'Material detected'} · {Math.round((scan.result.confidence || 0) * 100)}% confidence</small></div>
                   </motion.div>
                 )}
                 {scan.message && !scan.busy && !scan.result && (
