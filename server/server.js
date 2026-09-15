@@ -302,7 +302,7 @@ const faqChat = async (req, res) => {
   if (!process.env.GEMINI_API_KEY) return send(res, 503, 'AI FAQ chat is not configured')
   const { question } = faqQuestionSchema.parse(req.body)
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+  const timeout = setTimeout(() => controller.abort(), 60_000)
   try {
     const configuredModels = (process.env.GEMINI_MODEL || 'gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash')
       .split(',').map((model) => model.trim().replace(/^models\//, '')).filter(Boolean)
@@ -371,7 +371,7 @@ const identifyItem = async (req, res) => {
   if (!req.file) return send(res, 400, 'An image is required')
 
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30_000)
+  const timeout = setTimeout(() => controller.abort(), 60_000)
   try {
     const configuredModels = (process.env.GEMINI_MODEL || 'gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash')
       .split(',')
@@ -404,8 +404,11 @@ const identifyItem = async (req, res) => {
     const discoveredVisionCandidates = availableModels
       .filter((model) => !/(embedding|aqa|tts|image-generation|robotics)/i.test(model))
       .sort((a, b) => Number(/flash/i.test(b)) - Number(/flash/i.test(a)))
+    // Keep configured fallbacks even when Google's model list uses a preview or
+    // versioned name. The generateContent request is the final compatibility check.
     const models = [...new Set([
-      ...preferredModels.filter((model) => availableModels.length === 0 || availableModels.includes(model)),
+      ...preferredModels,
+      ...availableModels.filter((model) => /flash|vision/i.test(model)),
       ...discoveredVisionCandidates
     ])]
     if (!models.length) {
@@ -453,7 +456,7 @@ Choose the dominant material when an item is mixed. Do not call a phone, laptop 
       if ([401, 403].includes(response.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
       if (response.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
       const providerReason = providerErrorMessage(lastProviderMessage).replace(/\s+/g, ' ').slice(0, 220)
-      return send(res, 502, `Gemini could not analyse this image (provider status ${response.status}). ${providerReason || 'No compatible vision model accepted the image request.'} Check GEMINI_API_KEY, Generative Language API access, and GEMINI_MODEL in Render.`)
+      return send(res, 502, `Gemini could not analyse this image (provider status ${response.status}). ${providerReason || 'No compatible vision model accepted the image request.'} In Render, set GEMINI_MODEL=gemini-2.5-flash, verify the API key has Generative Language API access, then redeploy.`)
     }
     const payload = await response.json()
     const text = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text
