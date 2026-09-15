@@ -109,11 +109,12 @@ export default function NewPickupPage() {
       {/* Header */}
       <motion.div className="np-header" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
         <Link className="np-back" to="/customer/pickups"><ArrowLeft size={16} /> Back</Link>
-        <div>
+        <div className="np-header__main">
           <span className="eyebrow"><Sparkles size={13} /> New pickup request</span>
           <h1>Book a responsible pickup</h1>
-          <p>Snap your item, fill details and schedule a collector visit.</p>
+          <p>Snap your item, let AI organize the details, and schedule a verified collector visit.</p>
         </div>
+        <div className="np-header__trust"><span><CheckCircle2 size={14} /> AI-assisted</span><span><Package size={14} /> 7 material types</span><span><MapPin size={14} /> Doorstep pickup</span></div>
       </motion.div>
 
       {/* Step indicator */}
@@ -131,7 +132,7 @@ export default function NewPickupPage() {
         <AnimatePresence mode="wait">
           {/* Step 1 — AI Scan */}
           {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="np-card">
+            <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="np-card np-card--scan">
               <div className="np-card__head">
                 <span className="np-card__icon"><Camera size={22} /></span>
                 <div><h2>Identify your item</h2><p>Take or upload a photo — our AI will suggest category, condition and weight.</p></div>
@@ -147,10 +148,11 @@ export default function NewPickupPage() {
                   <div className="np-drop-area" onClick={() => inputRef.current?.click()}>
                     <Camera size={32} />
                     <b>Tap to upload or take photo</b>
-                    <small>JPG, PNG, WEBP supported</small>
+                    <small>JPG, PNG, WEBP · Max 5 MB</small>
                   </div>
                 )}
               </div>
+              {!selectedFile && <div className="np-scan-tips"><span><Sparkles size={14} /> Best results with good lighting</span><span><Package size={14} /> Keep the full item in frame</span></div>}
 
               <div className="np-scan-btns">
                 <button type="button" className="button primary" onClick={() => cameraRef.current?.click()} disabled={scan.busy}><Camera size={15} /> Take photo</button>
@@ -178,14 +180,14 @@ export default function NewPickupPage() {
               </AnimatePresence>
 
               <div className="np-nav">
-                <button type="button" className="button primary" onClick={() => { if (!items.length) addItem(); setStep(2) }}>Continue to item details →</button>
+                <button type="button" className="button primary" onClick={() => { if (!items.length) addItem(); setStep(2) }}>Continue to item details <ArrowLeft size={15} className="np-arrow-right" /></button>
               </div>
             </motion.div>
           )}
 
           {/* Step 2 — Item Details */}
           {step === 2 && (
-            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="np-card">
+            <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="np-card np-card--details">
               <div className="np-card__head">
                 <span className="np-card__icon"><Package size={22} /></span>
                 <div><h2>Item details</h2><p>Review the AI suggestion and edit any field to match your item exactly.</p></div>
@@ -202,6 +204,7 @@ export default function NewPickupPage() {
                 })}
                 <div className="np-item-total"><span><Weight size={16} /> Total weight <b>{totalWeight.toFixed(2)} kg</b></span><span>Total estimated amount <strong>₹{totalAmount.toFixed(2)}</strong></span></div>
               </div>
+              <p className="np-estimate-note">Estimated value is based on selected category, condition and current indicative rates. Final value is confirmed after collection and weight verification.</p>
               <div className="form-grid">
                 <input type="hidden" {...register('category', { required: true })} value={items[0]?.category || 'Other'} readOnly />
                 <input type="hidden" {...register('itemDetails', { required: true })} value={items.map((item) => `${item.itemName} (${item.category})`).join('\n')} readOnly />
@@ -217,7 +220,7 @@ export default function NewPickupPage() {
 
           {/* Step 3 — Schedule */}
           {step === 3 && (
-            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="np-card">
+            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="np-card np-card--schedule">
               <div className="np-card__head">
                 <span className="np-card__icon"><Calendar size={22} /></span>
                 <div><h2>Pickup schedule</h2><p>Choose a convenient date, time and address for the collector visit.</p></div>
