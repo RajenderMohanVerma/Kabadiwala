@@ -1,4 +1,4 @@
-import { Camera, ImagePlus, Sparkles, MapPin, Calendar, Package, Weight, CheckCircle2, ArrowLeft } from 'lucide-react'
+import { Camera, ImagePlus, Sparkles, MapPin, Calendar, Package, Weight, CheckCircle2, ArrowLeft, Plus, Trash2, IndianRupee } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { forwardRef, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -20,6 +20,18 @@ const steps = [
   { id: 2, label: 'Item details', icon: <Package size={16} /> },
   { id: 3, label: 'Schedule', icon: <Calendar size={16} /> },
 ]
+const categoryRates = { 'E-waste': 40, Metal: 35, Paper: 12, Plastic: 20, Glass: 8, Textile: 15, Other: 5 }
+const conditionMultipliers = { Working: 1, Good: 1, Used: .85, Damaged: .6, Mixed: .45 }
+const cleanItem = (item, index = 0) => ({
+  id: `${Date.now()}-${index}`,
+  itemName: item.itemName || 'Recyclable item',
+  category: item.category || 'Other',
+  material: item.material || '',
+  condition: item.condition || 'Used',
+  estimatedWeightKg: Number(item.estimatedWeightKg) || 0,
+  confidence: Number(item.confidence) || 0,
+  notes: item.notes || ''
+})
 
 export default function NewPickupPage() {
   const navigate = useNavigate()
@@ -27,6 +39,7 @@ export default function NewPickupPage() {
   const cameraRef = useRef(null)
   const [step, setStep] = useState(1)
   const [scan, setScan] = useState({ busy: false, message: '', result: null })
+  const [items, setItems] = useState([])
   const [error, setError] = useState('')
   const { register, handleSubmit, setValue, watch, formState: { isSubmitting, errors } } = useForm({
     mode: 'onChange',
@@ -45,17 +58,24 @@ export default function NewPickupPage() {
       body.append('image', file)
       const { data } = await api.post('/ai/identify-item', body, { headers: { 'Content-Type': 'multipart/form-data' } })
       const result = data.data
+      const detectedItems = (result.items?.length ? result.items : [result]).map(cleanItem)
+      setItems(detectedItems)
       setScan({ busy: false, message: 'AI suggestion ready! Review and edit below.', result })
       if (result.category) setValue('category', result.category)
-      if (result.itemName) setValue('itemDetails', result.itemName)
+      if (detectedItems.length) setValue('itemDetails', detectedItems.map((item) => `${item.itemName} (${item.category})`).join('\n'))
       if (result.condition) setValue('condition', result.condition)
-      if (result.estimatedWeightKg !== null && result.estimatedWeightKg !== undefined) setValue('estimatedWeight', result.estimatedWeightKg)
+      if (detectedItems.length) setValue('estimatedWeight', detectedItems.reduce((total, item) => total + item.estimatedWeightKg, 0).toFixed(2))
     } catch (e) {
       const message = e.response?.status === 503
         ? 'AI service is temporarily busy. Please try the same photo again in a few seconds, or continue by selecting the category manually.'
         : e.response?.data?.message || 'Could not identify item. Fill details manually.'
       setScan({ busy: false, message, result: null })
     }
+    const updateItem = (id, key, value) => setItems((current) => current.map((item) => item.id === id ? { ...item, [key]: key === 'estimatedWeightKg' ? Math.max(0, Number(value) || 0) : value } : item))
+    const addItem = () => setItems((current) => [...current, cleanItem({ itemName: '', category: 'Other', condition: 'Used', estimatedWeightKg: 0 }, current.length)])
+    const removeItem = (id) => setItems((current) => current.length > 1 ? current.filter((item) => item.id !== id) : current)
+    const totalWeight = items.reduce((total, item) => total + (Number(item.estimatedWeightKg) || 0), 0)
+    const totalAmount = items.reduce((total, item) => total + (Number(item.estimatedWeightKg) || 0) * (categoryRates[item.category] || categoryRates.Other) * (conditionMultipliers[item.condition] || .85), 0)
   }
 
   const handlePhoto = (event) => {
@@ -66,9 +86,13 @@ export default function NewPickupPage() {
   const submit = async (values) => {
     try {
       const body = new FormData()
+      const itemDetails = items.map((item) => `${item.itemName} | ${item.category} | ${item.estimatedWeightKg.toFixed(2)} kg | ${item.condition} | ₹${((item.estimatedWeightKg || 0) * (categoryRates[item.category] || 5) * (conditionMultipliers[item.condition] || .85)).toFixed(2)}`).join('\n')
+      body.set('itemDetails', itemDetails || values.itemDetails)
+      body.set('estimatedWeight', String(totalWeight || values.estimatedWeight || 0))
+      body.set('notes', [values.notes, `Estimated total amount: ₹${totalAmount.toFixed(2)}`].filter(Boolean).join('\n'))
       Object.entries(values).forEach(([key, value]) => {
         if (key === 'images') [...value].forEach((file) => body.append('images', file))
-        else if (key === 'pickupTime' || key === 'timePeriod') return
+        else if (['pickupTime', 'timePeriod', 'itemDetails', 'estimatedWeight', 'notes'].includes(key)) return
         else if (value !== '') body.append(key, value)
       })
       body.set('timeSlot', `${values.pickupTime} ${values.timePeriod}`)
@@ -153,7 +177,7 @@ export default function NewPickupPage() {
               </AnimatePresence>
 
               <div className="np-nav">
-                <button type="button" className="button primary" onClick={() => setStep(2)}>Continue to item details →</button>
+                <button type="button" className="button primary" onClick={() => { if (!items.length) addItem(); setStep(2) }}>Continue to item details →</button>
               </div>
             </motion.div>
           )}
@@ -165,20 +189,23 @@ export default function NewPickupPage() {
                 <span className="np-card__icon"><Package size={22} /></span>
                 <div><h2>Item details</h2><p>Review the AI suggestion and edit any field to match your item exactly.</p></div>
               </div>
+              <div className="np-item-editor">
+                <div className="np-item-editor__head"><div><b>Detected items</b><small>Each line has its own weight and live estimated amount.</small></div><button type="button" className="button secondary small" onClick={addItem}><Plus size={14} /> Add item</button></div>
+                {items.map((item, index) => {
+                  const amount = (Number(item.estimatedWeightKg) || 0) * (categoryRates[item.category] || 5) * (conditionMultipliers[item.condition] || .85)
+                  return <motion.div className="np-item-row" key={item.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                    <div className="np-item-row__number">{index + 1}</div>
+                    <div className="np-item-row__fields"><input value={item.itemName} onChange={(event) => updateItem(item.id, 'itemName', event.target.value)} placeholder="Item name" aria-label="Item name" /><select value={item.category} onChange={(event) => updateItem(item.id, 'category', event.target.value)} aria-label="Item category">{['E-waste', 'Metal', 'Paper', 'Plastic', 'Glass', 'Textile', 'Other'].map((category) => <option key={category}>{category}</option>)}</select><select value={item.condition} onChange={(event) => updateItem(item.id, 'condition', event.target.value)} aria-label="Item condition">{Object.keys(conditionMultipliers).map((condition) => <option key={condition}>{condition}</option>)}</select><label><span>Weight (kg)</span><input type="number" min="0" step="0.01" value={item.estimatedWeightKg} onChange={(event) => updateItem(item.id, 'estimatedWeightKg', event.target.value)} /></label></div>
+                    <div className="np-item-row__amount"><small><IndianRupee size={12} /> {categoryRates[item.category] || 5}/kg</small><b>₹{amount.toFixed(2)}</b>{items.length > 1 && <button type="button" onClick={() => removeItem(item.id)} aria-label={`Remove item ${index + 1}`}><Trash2 size={14} /></button>}</div>
+                  </motion.div>
+                })}
+                <div className="np-item-total"><span><Weight size={16} /> Total weight <b>{totalWeight.toFixed(2)} kg</b></span><span>Total estimated amount <strong>₹{totalAmount.toFixed(2)}</strong></span></div>
+              </div>
               <div className="form-grid">
-                <label className="field">
-                  <span>Category *</span>
-                  <select {...register('category', { required: true })}>
-                    <option value="">Choose category</option>
-                    {['E-waste', 'Metal', 'Paper', 'Plastic', 'Glass', 'Textile', 'Other'].map((c) => <option key={c}>{c}</option>)}
-                  </select>
-                  {errors.category && <small className="form-error">Category is required</small>}
-                </label>
-                <Field label="Item details *" placeholder="e.g. old laptop with charger" {...register('itemDetails', { required: true })} error={errors.itemDetails && 'Item details required'} />
+                <input type="hidden" {...register('category', { required: true })} value={items[0]?.category || 'Other'} readOnly />
+                <input type="hidden" {...register('itemDetails', { required: true })} value={items.map((item) => `${item.itemName} (${item.category})`).join('\n')} readOnly />
                 <Field label="Brand (optional)" placeholder="Dell, Samsung, LG…" {...register('brand')} />
-                <Field label="Condition" placeholder="Working, damaged, mixed…" {...register('condition')} />
                 <Field label="Quantity" type="number" min="1" {...register('quantity', { valueAsNumber: true })} />
-                <Field label="Estimated weight (kg)" type="number" min="0" step="0.1" placeholder="Optional" {...register('estimatedWeight')} />
               </div>
               <div className="np-nav">
                 <button type="button" className="button secondary" onClick={() => setStep(1)}>← Back</button>

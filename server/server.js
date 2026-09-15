@@ -101,7 +101,7 @@ const registerSchema = z.object({
 const loginSchema = z.object({ email: z.string().email().transform((v) => v.toLowerCase()), password: z.string().min(1) })
 const pickupSchema = z.object({
   category: z.string().trim().min(2).max(60),
-  itemDetails: z.string().trim().min(2).max(500),
+  itemDetails: z.string().trim().min(2).max(2000),
   brand: z.string().trim().max(80).optional().nullable(),
   condition: z.string().trim().max(80).optional().nullable(),
   quantity: z.coerce.number().int().min(1).max(10000),
@@ -281,6 +281,15 @@ const normalizeRecyclableCategory = (value) => {
   if (category.includes('textile') || category.includes('cloth') || category.includes('fabric') || category.includes('clothing')) return 'Textile'
   return 'Other'
 }
+const recyclableItemSchema = z.object({
+  itemName: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(60).transform(normalizeRecyclableCategory),
+  material: z.string().trim().max(120).default(''),
+  condition: z.string().trim().max(80).default('Used'),
+  estimatedWeightKg: z.number().finite().nonnegative().max(100000),
+  confidence: z.number().finite().min(0).max(1).default(0),
+  notes: z.string().trim().max(500).default('')
+})
 const itemIdentificationSchema = z.object({
   itemName: z.string().trim().min(1).max(120),
   category: z.string().trim().min(1).max(60).transform(normalizeRecyclableCategory),
@@ -288,7 +297,8 @@ const itemIdentificationSchema = z.object({
   condition: z.string().trim().min(1).max(80),
   estimatedWeightKg: z.number().finite().nonnegative().max(100000),
   confidence: z.number().finite().min(0).max(1),
-  notes: z.string().trim().max(1000)
+  notes: z.string().trim().max(1000),
+  items: z.array(recyclableItemSchema).min(1).max(20).optional()
 })
 const providerErrorMessage = (body) => {
   try {
@@ -425,7 +435,7 @@ const identifyItem = async (req, res) => {
         contents: [{
           parts: [
             { text: `You are a careful recycling-sorting vision assistant. Inspect the image and identify the main visible item or material. Return JSON only (no markdown) with exactly these fields: itemName, category, material, condition, estimatedWeightKg, confidence, notes.
-category MUST be exactly one of: ${recyclableCategories.join(', ')}.
+category MUST be exactly one of: ${recyclableCategories.join(', ')}. If multiple distinct objects/materials are visible, return every clearly visible item in an "items" array (one object per item) using the same fields itemName, category, material, condition, estimatedWeightKg, confidence, notes. The top-level fields must describe the main/combined result.
 Classification rules:
 - E-waste: phones, laptops, chargers, cables, keyboards, appliances, circuit boards and electronic devices.
 - Metal: iron, steel, aluminium, copper, cans, utensils, tools and metal parts without dominant electronics.
