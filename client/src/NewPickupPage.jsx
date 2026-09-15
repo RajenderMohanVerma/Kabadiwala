@@ -71,12 +71,13 @@ export default function NewPickupPage() {
         : e.response?.data?.message || 'Could not identify item. Fill details manually.'
       setScan({ busy: false, message, result: null })
     }
-    const updateItem = (id, key, value) => setItems((current) => current.map((item) => item.id === id ? { ...item, [key]: key === 'estimatedWeightKg' ? Math.max(0, Number(value) || 0) : value } : item))
-    const addItem = () => setItems((current) => [...current, cleanItem({ itemName: '', category: 'Other', condition: 'Used', estimatedWeightKg: 0 }, current.length)])
-    const removeItem = (id) => setItems((current) => current.length > 1 ? current.filter((item) => item.id !== id) : current)
-    const totalWeight = items.reduce((total, item) => total + (Number(item.estimatedWeightKg) || 0), 0)
-    const totalAmount = items.reduce((total, item) => total + (Number(item.estimatedWeightKg) || 0) * (categoryRates[item.category] || categoryRates.Other) * (conditionMultipliers[item.condition] || .85), 0)
   }
+
+  const updateItem = (id, key, value) => setItems((current) => current.map((item) => item.id === id ? { ...item, [key]: key === 'estimatedWeightKg' ? Math.max(0, Number(value) || 0) : value } : item))
+  const addItem = () => setItems((current) => [...current, cleanItem({ itemName: '', category: 'Other', condition: 'Used', estimatedWeightKg: 0 }, current.length)])
+  const removeItem = (id) => setItems((current) => current.length > 1 ? current.filter((item) => item.id !== id) : current)
+  const totalWeight = items.reduce((total, item) => total + (Number(item.estimatedWeightKg) || 0), 0)
+  const totalAmount = items.reduce((total, item) => total + (Number(item.estimatedWeightKg) || 0) * (categoryRates[item.category] || categoryRates.Other) * (conditionMultipliers[item.condition] || .85), 0)
 
   const handlePhoto = (event) => {
     const file = event.target.files?.[0]
