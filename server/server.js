@@ -392,11 +392,25 @@ const identifyItem = async (req, res) => {
       const body = await modelListResponse.text()
       console.error(`Gemini model discovery failed with status ${modelListResponse.status}: ${providerErrorMessage(body).slice(0, 300)}`)
     }
-    const preferredModels = [...configuredModels, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+    const preferredModels = [
+      ...configuredModels,
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-2.0-flash-001',
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-001',
+      'gemini-1.5-flash-8b'
+    ]
+    const discoveredVisionCandidates = availableModels
+      .filter((model) => !/(embedding|aqa|tts|image-generation|robotics)/i.test(model))
+      .sort((a, b) => Number(/flash/i.test(b)) - Number(/flash/i.test(a)))
     const models = [...new Set([
       ...preferredModels.filter((model) => availableModels.length === 0 || availableModels.includes(model)),
-      ...availableModels.filter((model) => /flash/i.test(model))
+      ...discoveredVisionCandidates
     ])]
+    if (!models.length) {
+      return send(res, 502, 'Gemini API key is valid, but no generateContent model is available. Enable the Generative Language API for this key and set GEMINI_MODEL to a model returned by the Gemini models list.')
+    }
     let response
     let lastProviderMessage = ''
     const imageData = req.file.buffer.toString('base64')
@@ -438,7 +452,8 @@ Choose the dominant material when an item is mixed. Do not call a phone, laptop 
       console.error(`Gemini item identification failed with status ${response.status}: ${providerErrorMessage(lastProviderMessage).slice(0, 500)}`)
       if ([401, 403].includes(response.status)) return send(res, 502, 'Gemini rejected the API key. Update GEMINI_API_KEY in Render and redeploy the backend.')
       if (response.status === 429) return send(res, 503, 'Gemini is temporarily rate-limited. Please try again in a moment.')
-      return send(res, 502, 'Gemini could not analyse this image. Render must use a Gemini API key with access to at least one vision model that supports generateContent.')
+      const providerReason = providerErrorMessage(lastProviderMessage).replace(/\s+/g, ' ').slice(0, 220)
+      return send(res, 502, `Gemini could not analyse this image (provider status ${response.status}). ${providerReason || 'No compatible vision model accepted the image request.'} Check GEMINI_API_KEY, Generative Language API access, and GEMINI_MODEL in Render.`)
     }
     const payload = await response.json()
     const text = payload?.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text
